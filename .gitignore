@@ -1,0 +1,4 @@
+*.pyc
+/tensorflow_datasets.egg-info/*
+/examples/*.png
+/examples/*.txt
