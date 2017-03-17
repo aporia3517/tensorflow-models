@@ -9,5 +9,5 @@ Installation
 .. code-block:: bash
 
   git clone https://github.com/stefanwebb/tensorflow-models.git
-  cd tensorflow-datasets
+  cd tensorflow-models
   python setup.py develop
