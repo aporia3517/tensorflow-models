@@ -24,16 +24,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from enum import Enum
-import numpy as np
-
 import os, sys
 import importlib
+from enum import Enum
 
 import tensorflow as tf
 import numpy as np
 
 import tensorflow_datasets as tf_data
+import tensorflow_models.optimizers as optimizers
+
+def count_batches(settings, subset=None):
+	if not subset is None:
+		return tf_data.count(settings['dataset'], subset) // settings['batch_size']
+	else:
+		train_batches = count_batches(settings, tf_data.Subset.TRAIN)
+		test_batches = count_batches(settings, tf_data.Subset.TEST)
+		return train_batches, test_batches
 
 def global_step():
 	return tf.contrib.framework.get_or_create_global_step()
