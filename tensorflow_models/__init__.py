@@ -33,7 +33,20 @@ import importlib
 import tensorflow as tf
 import numpy as np
 
-import tensorflow_data as tf_data
+import tensorflow_datasets as tf_data
+
+def global_step():
+	return tf.contrib.framework.get_or_create_global_step()
+
+def local_step(settings, name='local_step', start=0):
+	with cpu_device(settings):
+		step = tf.Variable(start, name=name, trainable=False)
+
+def cpu_device(settings):
+	return tf.device("/cpu:0")
+
+def gpu_device(settings):
+	return tf.device("/" + settings['device'])
 
 # TODO: Would it be better to expand the settings dictionary when it is called and have named arguments?
 # NOTE: Have flatten as a flag rather than a setting because I believe it will depend on the model type which input shape is required
@@ -56,7 +69,7 @@ def unsupervised_inputs(settings, flatten=True):
 		flatten=flatten,
 		transformations=settings['transformations'])
 
-	return train_images, test_images
+	return train_samples, test_samples
 
 def supervised_inputs(settings, flatten=True):
 	train_samples, train_labels = tf_data.inputs(
@@ -77,4 +90,4 @@ def supervised_inputs(settings, flatten=True):
 		flatten=flatten,
 		transformations=settings['transformations'])
 
-	return train_images, train_labels, test_images, test_labels
+	return train_samples, train_labels, test_samples, test_labels
