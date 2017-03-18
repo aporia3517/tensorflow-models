@@ -62,3 +62,31 @@ class Context:
 
 	def __exit__(self, *args):
 		self._graph.__exit__(*args)
+
+# Handles running queue runners using coordinator object
+class CoordinatorContext:
+	def __init__(self, settings, sess):
+		self._settings = settings
+		
+		# Start input enqueue threads.
+		self._coord = tf.train.Coordinator()
+		self._exception_context = self._coord.stop_on_exception()
+		self._threads = tf.train.start_queue_runners(sess=sess, coord=self._coord)
+		
+
+	def __enter__(self):
+		# Terminate threads on an exception
+		self._exception_context.__enter__()
+		
+		return self
+
+	def __exit__(self, *args):
+		self._coord.request_stop()
+		self._coord.join(self._threads)
+		self._exception_context.__exit__(*args)
+
+	def running(self):
+		return not self._coord.should_stop()
+
+	def stop(self):
+		self._coord.request_stop()
