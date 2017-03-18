@@ -29,7 +29,7 @@ import numpy as np
 
 import tensorflow_models as tf_models
 
-# Initializes TensorFlow, and loads data
+# Initializes TensorFlow and loads data
 class Context:
 	def __init__(self, settings):
 		self._graph = tf.Graph().as_default()
@@ -46,8 +46,7 @@ class Context:
 		self._create_inputs()
 
 		# Create some misc. variables
-		self.train_batches, self.test_batches = tf_models.count_batches(self._settings)
-		self.saver = tf.train.Saver()		
+		self.train_batches, self.test_batches = tf_models.count_batches(self._settings)	
 		
 		return self
 
@@ -73,11 +72,9 @@ class CoordinatorContext:
 		self._exception_context = self._coord.stop_on_exception()
 		self._threads = tf.train.start_queue_runners(sess=sess, coord=self._coord)
 		
-
 	def __enter__(self):
 		# Terminate threads on an exception
 		self._exception_context.__enter__()
-		
 		return self
 
 	def __exit__(self, *args):
@@ -90,3 +87,47 @@ class CoordinatorContext:
 
 	def stop(self):
 		self._coord.request_stop()
+
+
+class SessionContext:
+	def __init__(self, settings):
+		self._settings = settings
+		#self._model_context = model_context
+		self._saver = tf.train.Saver()	
+		self._init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+
+	def __enter__(self):
+		# Start the Tensorflow session
+		self.sess = tf.Session()
+		self.sess.__enter__()
+
+		# Initialize training variables to scratch or resume from previous step
+		self._initalize()
+
+		return self
+
+	def __exit__(self, *args):
+		self.sess.__exit__(*args)
+		pass
+
+	def _intialize(self):
+		if self._settings['resume_from'] is None:
+			self.sess.run(self._init_op)
+			self.step = 0
+			self.results = {}
+			self.results['costs_train'] = []
+			self.results['times_train'] = []
+			self.results['costs_test'] = []
+			if self_settings['method'] == 'avb' or self_settings['method'] == 'em-avb':
+				self.results['adversarial_train'] = []
+
+			self.prior_noise = self._model_context.sample_prior()
+		else:
+			# Check that checkpoint file exists
+			self.step = self._settings['resume_from']
+			snapshot_filepath = tf_models.utils.settings.filepath(self._settings) + '-' + str(self.step)
+			if not tf_models.utils.file.exists(snapshot_filepath + '.meta'):
+				raise IOError('Snapshot at step {} does not exist'.format(self.step))
+			self._saver.restore(self.sess, snapshot_filepath)
+			self.results = tf_models.utils.snapshot.load_results(snapshot_filepath)
+			print("Model restored from epoch {}".format(self._settings['resume_from']))

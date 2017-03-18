@@ -99,3 +99,54 @@ def supervised_inputs(settings, flatten=True):
 		transformations=settings['transformations'])
 
 	return train_samples, train_labels, test_samples, test_labels
+
+# Load a model
+class Model(object):
+	def __init__(self, settings, train_samples, test_samples, step=None):
+		# Save arguments for later
+		self._settings = settings
+		self._train_samples = train_samples
+		self._test_samples = test_samples
+		self._step = step
+
+		# Create the operations to evaluate model and calculate loss
+		_create_model()
+
+		self.z = self._model_train.z_placeholder
+		self.x = self._model_train.x_placeholder
+		self.encoder = self._model_train.encoder
+		self.decoder = self._model_train.decoder
+
+		# Create the loss operations
+		_create_losses()
+
+		# Create the optimizer
+		_create_optimizer()
+
+	def _create_model(self):
+		# TODO: Load correct modules for Model
+		# *** CONTINUE FROM HERE 19/3/2017 ***
+		with gpu_device(self._settings):
+			with tf.variable_scope(self._settings['model']):
+				self._model_train = Model(self._train_samples, self._settings)
+				tf.get_variable_scope().reuse_variables()
+				self._model_test = Model(self._test_samples, self._settings)
+
+	def _create_losses(self):
+		# TODO: Load correct modules for loss
+		# *** CONTINUE FROM HERE 19/3/2017 ***
+		with gpu_device(self._settings):
+			with tf.variable_scope(self._settings['model']):
+				# Add to the Graph the loss calculation.
+				train_loss_op = loss.loss(*self._model_train.inference())
+				test_loss_op = loss.loss(*self._model_test.inference())
+				self.loss_ops = {'train_loss': train_loss_op, 'test_loss': test_loss_op}
+
+	def _create_optimizer(self):
+		# TODO: Load correct modules for loss
+		# *** CONTINUE FROM HERE 19/3/2017 ***
+		with gpu_device(self._settings):
+			with tf.variable_scope(self._settings['model']):
+				# Add to the Graph operations that train the model.
+				train_op = optimizer.training(self.loss_ops['train_loss'], learning_rate=self._settings['learning_rate'], step=self._step)
+				self.train_ops = {'train_loss': train_op}
