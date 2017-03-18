@@ -25,24 +25,40 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import numpy as np
 
-def training(loss, learning_rate=0.001, var_list=None, step=None):
-	# Add a scalar summary for the snapshot loss.
-	#tf.summary.scalar('loss', loss)
+import tensorflow_models as tf_models
 
-	# Create the gradient descent optimizer with the given learning rate.
-	optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+# Initializes TensorFlow, and loads data
+class Context:
+	def __init__(self, settings):
+		self._graph = tf.Graph().as_default()
+		self._settings = settings
 
-	# Create a variable to track the global step.
-	if step is None:
-		with tf.device("/cpu:0"):
-			step = tf.Variable(0, name='global_step', trainable=False)
+	def __enter__(self):
+		# Use the default graph
+		self._graph.__enter__()
 
-	# Use the optimizer to apply the gradients that minimize the loss
-	# (and also increment the global step counter) as a single training step.
-	if var_list is None:
-		train_op = optimizer.minimize(loss, global_step=step)
-	else:
-		train_op = optimizer.minimize(loss, global_step=step, var_list=var_list)
+		# Fix seeds for reproducibility
+		self._set_seeds()
 
-	return train_op
+		# Create input nodes and global step
+		self._create_inputs()
+
+		# Create some misc. variables
+		self.train_batches, self.test_batches = tf_models.count_batches(self._settings)
+		self.saver = tf.train.Saver()		
+		
+		return self
+
+	def _set_seeds(self):
+		np.random.seed(self._settings['np_random_seed'])
+		tf.set_random_seed(self._settings['tf_random_seed'])
+
+	def _create_inputs(self):
+		with tf_models.cpu_device(self._settings):
+			self.train_samples, self.test_samples = tf_models.unsupervised_inputs(self._settings)
+			self.global_step = tf_models.global_step()
+
+	def __exit__(self, *args):
+		self._graph.__exit__(*args)

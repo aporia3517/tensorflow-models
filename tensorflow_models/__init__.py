@@ -32,7 +32,8 @@ import tensorflow as tf
 import numpy as np
 
 import tensorflow_datasets as tf_data
-import tensorflow_models.optimizers as optimizers
+import tensorflow_models.optimizers
+import tensorflow_models.contexts
 
 def count_batches(settings, subset=None):
 	if not subset is None:
