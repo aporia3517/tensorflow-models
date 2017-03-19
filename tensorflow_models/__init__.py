@@ -35,6 +35,10 @@ import tensorflow_datasets as tf_data
 import tensorflow_models.optimizers
 import tensorflow_models.contexts
 
+# Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
+def unflattened_batchshape(settings):
+	return (settings['batch_size'],) + tf_data.sample_shape(settings['dataset'])
+
 def count_batches(settings, subset=None):
 	if not subset is None:
 		return tf_data.count(settings['dataset'], subset) // settings['batch_size']

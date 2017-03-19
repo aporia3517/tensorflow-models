@@ -24,10 +24,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import importlib
+
 import tensorflow as tf
 import numpy as np
 
 import tensorflow_models as tf_models
+import tensorflow_models.timer
+import tensorflow_models.snapshot
+import tensorflow_models.plot
 
 # Initializes TensorFlow and loads data
 class Context(object):
@@ -44,9 +49,6 @@ class Context(object):
 
 		# Create input nodes and global step
 		self._create_inputs()
-
-		# Create some misc. variables
-		self.train_batches, self.test_batches = tf_models.count_batches(self._settings)	
 		
 		return self
 
@@ -62,10 +64,14 @@ class Context(object):
 	def __exit__(self, *args):
 		self._graph.__exit__(*args)
 
+# TODO: Make a model context that inherits from Context
+
+# TODO: Make this inherit from ModelContext
 class SessionContext(object):
 	def __init__(self, settings, model):
 		#super(SessionContext, self).__init__()
 		self._settings = settings
+		self.train_batches, self.test_batches = tf_models.count_batches(self._settings)	
 		self._model = model
 		self.saver = tf.train.Saver()	
 		self._init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
@@ -135,5 +141,100 @@ class CoordinatorContext(SessionContext):
 	def stop(self):
 		self._coord.request_stop()
 
-#class LearningContext(object):
-#	def __init__(self, settings, model):
+class LearningContext(CoordinatorContext):
+	def __init__(self, settings, model, paths):
+		super(LearningContext, self).__init__(settings, model)
+		self._paths = paths
+		self._initialize_counters()
+
+	def __enter__(self):
+		super(LearningContext, self).__enter__()
+		self._learning_hooks()
+		self._initialize_hook()
+		return self
+
+	def __exit__(self, *args):
+		self._finished_hook()
+		super(LearningContext, self).__exit__(*args)
+
+	# Work out how many steps to do, and how many minibatches per step
+	def _initialize_counters(self):
+		if not self._settings['batches_per_step'] is None:
+			self._batches_per_step = self._settings['batches_per_step']
+		else:
+			self._batches_per_step = self.train_batches
+
+		if not self._settings['count_steps'] is None:
+			self._count_steps = self._settings['count_steps']
+		elif not self._settings['count_epochs'] is None:
+			# self.batches_per_step => Batches per step
+			# self.train_batches => Batches per epoch
+			self._count_steps = self._settings['count_epochs'] * float(self.train_batches) / self._batches_per_step
+
+	# Called before learning is started
+	def _initialize_hook(self):
+		# See where the test loss starts
+		if self._settings['resume_from'] is None:
+			# Do a test evaluation before any training happens
+			test_loss = self.test()
+			self.results['costs_test'] += [test_loss]
+		else:
+			test_loss = self.results['costs_test'][-1]
+
+		print('epoch {:.3f}, test loss = {:.2f}'.format(self.epoch(), test_loss))
+		self._save_snapshot()
+
+	# Called every run()
+	def _step_hook(self):
+		# Perform the 
+		with tf_models.timer.Timer() as train_timer:
+			train_loss = self.train(self._batches_per_step)
+		test_loss = self.test()
+
+		self.results['times_train'] += [train_timer.interval]
+		self.results['costs_train'] += [train_loss]
+		self.results['costs_test'] += [test_loss]
+
+	def _before_step_hook(self):
+		pass
+
+	def _after_step_hook(self):
+		self.step += 1
+
+		train_time = self.results['times_train'][-1]
+		train_loss = self.results['costs_train'][-1]
+		test_loss = self.results['costs_test'][-1]
+
+		examples_per_sec = self._settings['batch_size'] * self._batches_per_step / train_time
+		sec_per_batch = train_time / self.train_batches
+
+		print('epoch {:.3f}, train loss = {:.2f}, test loss = {:.2f} ({:.1f} examples/sec)'.format(self.epoch(), train_loss, test_loss, examples_per_sec))
+		self._save_snapshot()
+
+	# Convert step number into epoch number
+	def epoch(self):
+		return self.step * float(self._batches_per_step) / self.train_batches
+
+	def running(self):
+		return self.step < self._count_steps and super(LearningContext, self).running()
+
+	def run(self):
+		self._before_step_hook()
+		self._step_hook()
+		self._after_step_hook()
+
+	# Save snapshot of model parameters, results so far and the prior noise for plotting samples
+	def _save_snapshot(self):
+		if (not self._settings['steps_per_snapshot'] is None) and (self.step % self._settings['steps_per_snapshot'] == 0):
+			self.saver.save(self.sess, tf_models.settings.snapshots_filepath(self._settings, self._paths), global_step=self.step)
+			tf_models.snapshot.save_results(tf_models.settings.snapshots_filepath(self._settings, self._paths), self.step, self.results, self.prior_noise)
+			if self._settings['plot_samples']:
+				decoded_samples = self.sess.run(self._model.decoder, feed_dict={self._model.z: self.prior_noise})
+				tf_models.plot.sample_grid(tf_models.settings.plots_filepath(self._settings, self._paths) + '-samples-' + str(self.step), decoded_samples.reshape(tf_models.unflattened_batchshape(self._settings)))
+
+	def _learning_hooks(self):
+		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
+		self.train, self.test = inference_lib.learning_hooks(self)
+
+	def _finished_hook(self):
+		print('Done training for {} epochs'.format(self.epoch()))

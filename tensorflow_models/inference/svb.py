@@ -24,19 +24,27 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# *** CONTINUE WITH THIS 19/3/2017 ***
-def learning_hooks(settings, learning_context):
-	# Make these generated from a factory method in tf_models
+def learning_hooks(session):
+	sess = session.sess
+	model = session._model
+	test_batches = session.test_batches
+
+	train_op = model.train_ops['train_loss']
+	train_loss_op = model.loss_ops['train_loss']
+	test_loss_op = model.loss_ops['train_loss']
+	
 	def train(count_steps):
 		total_elbo = 0.
 		for idx in range(count_steps):
-			_, this_elbo = sess.run([train_op, train_elbo_op])
+			_, this_elbo = sess.run([train_op, train_loss_op])
 			total_elbo += this_elbo
 		return total_elbo / count_steps
 
 	def test():
 		total_loss = 0.
-		for idx in range(context.test_batches):
-			this_loss = sess.run(test_elbo_op)
+		for idx in range(test_batches):
+			this_loss = sess.run(test_loss_op)
 			total_loss += this_loss
-		return total_loss / context.test_batches
+		return total_loss / test_batches
+
+	return train, test
