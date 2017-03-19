@@ -110,7 +110,7 @@ class Model(object):
 		self._step = step
 
 		# Create the operations to evaluate model and calculate loss
-		_create_model()
+		self._create_model()
 
 		self.z = self._model_train.z_placeholder
 		self.x = self._model_train.x_placeholder
@@ -118,13 +118,14 @@ class Model(object):
 		self.decoder = self._model_train.decoder
 
 		# Create the loss operations
-		_create_losses()
+		self._create_losses()
 
 		# Create the optimizer
-		_create_optimizer()
+		self._create_optimizer()
 
 	def _create_model(self):
-		model_lib = importlib.import_module('tensorflow_datasets.models.' + settings['model'])
+		#print('Loading: tensorflow_models.models.' + self._settings['model'])
+		model_lib = importlib.import_module('tensorflow_models.models.' + self._settings['model'])
 		Model = model_lib.Model
 
 		with gpu_device(self._settings):
@@ -134,7 +135,7 @@ class Model(object):
 				self._model_test = Model(self._test_samples, self._settings)
 
 	def _create_losses(self):
-		loss_lib = importlib.import_module('tensorflow_datasets.losses.' + settings['loss'])
+		loss_lib = importlib.import_module('tensorflow_models.losses.' + self._settings['loss'])
 
 		with gpu_device(self._settings):
 			with tf.variable_scope(self._settings['model']):
@@ -144,10 +145,13 @@ class Model(object):
 				self.loss_ops = {'train_loss': train_loss_op, 'test_loss': test_loss_op}
 
 	def _create_optimizer(self):
-		optimizer_lib = importlib.import_module('tensorflow_datasets.optimizers' + settings['optimizer'])
+		optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + self._settings['optimizer'])
 
 		with gpu_device(self._settings):
 			with tf.variable_scope(self._settings['model']):
 				# Add to the Graph operations that train the model.
 				train_op = optimizer_lib.training(self.loss_ops['train_loss'], learning_rate=self._settings['learning_rate'], step=self._step)
 				self.train_ops = {'train_loss': train_op}
+
+	def sample_prior(self):
+		return self._model_train.sample_prior()

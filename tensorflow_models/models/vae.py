@@ -28,7 +28,7 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow_models.initializations import xavier_init
-from models import Model
+from tensorflow_models import Model
 
 # TODO: Break into tf_models package
 # TODO: How to give uniform interface to initializers?
@@ -43,7 +43,7 @@ def _relu_layer(x, weights, biases):
 	return tf.nn.relu(tf.add(tf.matmul(x, weights), biases))
 
 # TODO: VAE takes settings to get batchsize and size of input
-class Vae(Model):
+class Model(Model):
 	def __init__(self, inputs, settings):
 		# Dimensions of random variables
 		# TODO: Get variables from settings

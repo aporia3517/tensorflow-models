@@ -71,10 +71,10 @@ def plots_filepath(settings, paths):
 	#return os.path.join(path, filename(settings))
 
 # Load the settings from a file that overwrites defaults
-def load(filename = '', paths):
+def load(filename, paths):
 	# If no name, then return defaults
-	if not filename:
-		return defaults()
+	#if not filename:
+	#	return defaults()
 
 	# Check that settings path and file exist
 	filename = os.path.join(paths['settings'], filename + '.py')

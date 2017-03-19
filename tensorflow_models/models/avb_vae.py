@@ -27,8 +27,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from utils.initializations import xavier_init
-from models import Model
+from tensorflow_models.initializations import xavier_init
+from tensorflow_models import Model
 
 # TODO: Best initialization for ReLU biases? -1 or 0.1?
 
@@ -44,7 +44,7 @@ def _biases(shape, name='biases', constant=0.1):
 def _relu_layer(x, weights, biases):
 	return tf.nn.relu(tf.add(tf.matmul(x, weights), biases))
 
-class EmVae(Model):
+class Model(Model):
 	def __init__(self, inputs):
 		# Dimensions of random variables
 		self.batch_size = 100

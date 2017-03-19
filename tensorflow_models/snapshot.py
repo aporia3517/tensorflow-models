@@ -29,12 +29,10 @@ import cPickle as pickle
 import utils.file
 
 # Save results so we can plot them later and resume from snapshots
-def save_results(filepath, epoch, costs_train, costs_test, times_train, prior_noise):
+def save_results(filepath, epoch, results, prior_noise):
 	results_filepath = filepath + '-' + str(epoch) + '.results'
 	with open(results_filepath, 'wb') as f:
-		pickle.dump(costs_train, f, protocol = pickle.HIGHEST_PROTOCOL)
-		pickle.dump(costs_test, f, protocol = pickle.HIGHEST_PROTOCOL)
-		pickle.dump(times_train, f, protocol = pickle.HIGHEST_PROTOCOL)
+		pickle.dump(results, f, protocol = pickle.HIGHEST_PROTOCOL)
 		pickle.dump(prior_noise, f, protocol = pickle.HIGHEST_PROTOCOL)
 
 def load_results(filepath):
@@ -44,9 +42,7 @@ def load_results(filepath):
 		raise IOError('Results file at epoch {} does not exist'.format(epoch))
 
 	with open(results_filepath, 'rb') as f:
-		costs_train = pickle.load(f)
-		costs_test = pickle.load(f)
-		times_train = pickle.load(f)
+		results = pickle.load(f)
 		prior_noise = pickle.load(f)
 
-	return costs_train, costs_test, times_train, prior_noise
+	return results, prior_noise

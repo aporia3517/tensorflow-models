@@ -30,7 +30,7 @@ import numpy as np
 import tensorflow_models as tf_models
 
 # Initializes TensorFlow and loads data
-class Context:
+class Context(object):
 	def __init__(self, settings):
 		self._graph = tf.Graph().as_default()
 		self._settings = settings
@@ -62,38 +62,12 @@ class Context:
 	def __exit__(self, *args):
 		self._graph.__exit__(*args)
 
-# Handles running queue runners using coordinator object
-class CoordinatorContext:
-	def __init__(self, settings, sess):
+class SessionContext(object):
+	def __init__(self, settings, model):
+		#super(SessionContext, self).__init__()
 		self._settings = settings
-		
-		# Start input enqueue threads.
-		self._coord = tf.train.Coordinator()
-		self._exception_context = self._coord.stop_on_exception()
-		self._threads = tf.train.start_queue_runners(sess=sess, coord=self._coord)
-		
-	def __enter__(self):
-		# Terminate threads on an exception
-		self._exception_context.__enter__()
-		return self
-
-	def __exit__(self, *args):
-		self._coord.request_stop()
-		self._coord.join(self._threads)
-		self._exception_context.__exit__(*args)
-
-	def running(self):
-		return not self._coord.should_stop()
-
-	def stop(self):
-		self._coord.request_stop()
-
-
-class SessionContext:
-	def __init__(self, settings):
-		self._settings = settings
-		#self._model_context = model_context
-		self._saver = tf.train.Saver()	
+		self._model = model
+		self.saver = tf.train.Saver()	
 		self._init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 
 	def __enter__(self):
@@ -102,7 +76,7 @@ class SessionContext:
 		self.sess.__enter__()
 
 		# Initialize training variables to scratch or resume from previous step
-		self._initalize()
+		self._initialize()
 
 		return self
 
@@ -110,7 +84,7 @@ class SessionContext:
 		self.sess.__exit__(*args)
 		pass
 
-	def _intialize(self):
+	def _initialize(self):
 		if self._settings['resume_from'] is None:
 			self.sess.run(self._init_op)
 			self.step = 0
@@ -118,10 +92,10 @@ class SessionContext:
 			self.results['costs_train'] = []
 			self.results['times_train'] = []
 			self.results['costs_test'] = []
-			if self_settings['method'] == 'avb' or self_settings['method'] == 'em-avb':
+			if self._settings['inference'] == 'avb' or self._settings['inference'] == 'em-avb':
 				self.results['adversarial_train'] = []
 
-			self.prior_noise = self._model_context.sample_prior()
+			self.prior_noise = self._model.sample_prior()
 		else:
 			# Check that checkpoint file exists
 			self.step = self._settings['resume_from']
@@ -129,5 +103,37 @@ class SessionContext:
 			if not tf_models.utils.file.exists(snapshot_filepath + '.meta'):
 				raise IOError('Snapshot at step {} does not exist'.format(self.step))
 			self._saver.restore(self.sess, snapshot_filepath)
-			self.results = tf_models.utils.snapshot.load_results(snapshot_filepath)
+			self.results, self.prior_noise = tf_models.utils.snapshot.load_results(snapshot_filepath)
 			print("Model restored from epoch {}".format(self._settings['resume_from']))
+
+# Handles running queue runners using coordinator object
+class CoordinatorContext(SessionContext):
+	def __init__(self, settings, model):
+		super(CoordinatorContext, self).__init__(settings, model)
+		self._settings = settings
+		
+		# Input enqueue threads
+		self._coord = tf.train.Coordinator()
+		self._exception_context = self._coord.stop_on_exception()
+		
+	def __enter__(self):
+		# Terminate threads on an exception
+		super(CoordinatorContext, self).__enter__()
+		self._threads = tf.train.start_queue_runners(sess=self.sess, coord=self._coord)
+		self._exception_context.__enter__()
+		return self
+
+	def __exit__(self, *args):
+		self._coord.request_stop()
+		self._coord.join(self._threads)
+		self._exception_context.__exit__(*args)
+		super(CoordinatorContext, self).__exit__(*args)
+
+	def running(self):
+		return not self._coord.should_stop()
+
+	def stop(self):
+		self._coord.request_stop()
+
+#class LearningContext(object):
+#	def __init__(self, settings, model):
