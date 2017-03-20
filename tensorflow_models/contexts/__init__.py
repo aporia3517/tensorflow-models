@@ -149,7 +149,9 @@ class LearningContext(CoordinatorContext):
 
 	def __enter__(self):
 		super(LearningContext, self).__enter__()
-		self._learning_hooks()
+		self._set_learning_hooks()
+		self._set_step_hook()
+		self._set_after_step_hook()
 		self._initialize_hook()
 		return self
 
@@ -185,31 +187,16 @@ class LearningContext(CoordinatorContext):
 		self._save_snapshot()
 
 	# Called every run()
-	def _step_hook(self):
-		# Perform the 
-		with tf_models.timer.Timer() as train_timer:
-			train_loss = self.train(self._batches_per_step)
-		test_loss = self.test()
-
-		self.results['times_train'] += [train_timer.interval]
-		self.results['costs_train'] += [train_loss]
-		self.results['costs_test'] += [test_loss]
+	def _set_step_hook(self):
+		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
+		self._step_hook = inference_lib.step_hook
 
 	def _before_step_hook(self):
 		pass
 
-	def _after_step_hook(self):
-		self.step += 1
-
-		train_time = self.results['times_train'][-1]
-		train_loss = self.results['costs_train'][-1]
-		test_loss = self.results['costs_test'][-1]
-
-		examples_per_sec = self._settings['batch_size'] * self._batches_per_step / train_time
-		sec_per_batch = train_time / self.train_batches
-
-		print('epoch {:.3f}, train loss = {:.2f}, test loss = {:.2f} ({:.1f} examples/sec)'.format(self.epoch(), train_loss, test_loss, examples_per_sec))
-		self._save_snapshot()
+	def _set_after_step_hook(self):
+		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
+		self._after_step_hook = inference_lib.after_step_hook
 
 	# Convert step number into epoch number
 	def epoch(self):
@@ -220,8 +207,10 @@ class LearningContext(CoordinatorContext):
 
 	def run(self):
 		self._before_step_hook()
-		self._step_hook()
-		self._after_step_hook()
+		self._step_hook(self)
+		self.step += 1
+		self._after_step_hook(self)
+		self._save_snapshot()
 
 	# Save snapshot of model parameters, results so far and the prior noise for plotting samples
 	def _save_snapshot(self):
@@ -232,7 +221,7 @@ class LearningContext(CoordinatorContext):
 				decoded_samples = self.sess.run(self._model.decoder, feed_dict={self._model.z: self.prior_noise})
 				tf_models.plot.sample_grid(tf_models.settings.plots_filepath(self._settings, self._paths) + '-samples-' + str(self.step), decoded_samples.reshape(tf_models.unflattened_batchshape(self._settings)))
 
-	def _learning_hooks(self):
+	def _set_learning_hooks(self):
 		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
 		self.train, self.test = inference_lib.learning_hooks(self)
 

@@ -27,7 +27,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-# Earth mover loss (Wasserstein loss)
+# Adversarial variational Bayes loss
 
 # lg_p_x_given_z ~ batch_size x 784
 # adversary ~ ?
@@ -35,9 +35,15 @@ import tensorflow as tf
 def loss(lg_p_x_given_z, adversary, prior_adversary):	
 	# Eq (3.9)
 	# NOTE: Take negative since we are minimizing
-	elbo_loss = -tf.reduce_mean(-adversary + tf.reduce_sum(lg_p_x_given_z, 1))
+	elbo_loss = -tf.reduce_mean(-adversary + lg_p_x_given_z)
 
 	# Eq (3.3)
 	adversarial_loss = -tf.reduce_mean(tf.log(tf.nn.sigmoid(adversary)) + tf.log(1. - tf.nn.sigmoid(prior_adversary)))
 
 	return elbo_loss, adversarial_loss
+
+def make(train_inference, test_inference):
+	train_loss_op, _ = loss(train_inference['ll_decoder'], train_inference['adversary'], train_inference['prior_adversary'])
+	test_loss_op, adversarial_loss_op = loss(test_inference['ll_decoder'], test_inference['adversary'], test_inference['prior_adversary'])
+
+	return {'train_loss': train_loss_op, 'test_loss': test_loss_op, 'adversarial_loss': adversarial_loss_op}

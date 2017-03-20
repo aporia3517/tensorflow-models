@@ -141,21 +141,19 @@ class Model(object):
 	def _create_losses(self):
 		loss_lib = importlib.import_module('tensorflow_models.losses.' + self._settings['loss'])
 
+		# Make this agnostic to the inference method!
 		with gpu_device(self._settings):
 			with tf.variable_scope(self._settings['model']):
 				# Add to the Graph the loss calculation.
-				train_loss_op = loss_lib.loss(*self._model_train.inference())
-				test_loss_op = loss_lib.loss(*self._model_test.inference())
-				self.loss_ops = {'train_loss': train_loss_op, 'test_loss': test_loss_op}
+				self.loss_ops = loss_lib.make(self._model_train.inference(), self._model_test.inference())
 
 	def _create_optimizer(self):
-		optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + self._settings['optimizer'])
+		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
 
 		with gpu_device(self._settings):
 			with tf.variable_scope(self._settings['model']):
 				# Add to the Graph operations that train the model.
-				train_op = optimizer_lib.training(self.loss_ops['train_loss'], learning_rate=self._settings['learning_rate'], step=self._step)
-				self.train_ops = {'train_loss': train_op}
+				self.train_ops = inference_lib.make(self._settings, self.loss_ops, self._step)
 
 	def sample_prior(self):
 		return self._model_train.sample_prior()

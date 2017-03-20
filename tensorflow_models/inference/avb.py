@@ -26,23 +26,30 @@ from __future__ import print_function
 
 import importlib
 
-import tensorflow_models as tf_models
-
 def learning_hooks(session):
 	sess = session.sess
 	model = session._model
 	test_batches = session.test_batches
 
-	train_op = model.train_ops['train_loss']
-	train_loss_op = model.loss_ops['train_loss']
+	elbo_train_op = model.train_ops['train_loss']
+	elbo_loss_op = model.loss_ops['train_loss']
+
+	adversarial_train_op = model.train_ops['adversarial_loss']
+	adversarial_loss_op = model.loss_ops['adversarial_loss']
+
 	test_loss_op = model.loss_ops['train_loss']
-	
-	def train(count_steps):
-		total_elbo = 0.
-		for idx in range(count_steps):
-			_, this_elbo = sess.run([train_op, train_loss_op])
-			total_elbo += this_elbo
-		return total_elbo / count_steps
+
+	def train_epoch(count_steps):
+			total_elbo = 0.
+			total_adversarial = 0.
+			for idx in range(count_steps):
+				# Try interweaving
+				_, this_elbo, _, this_adversarial = sess.run([elbo_train_op, elbo_loss_op, adversarial_train_op, adversarial_loss_op])
+				#_, this_elbo = sess.run([elbo_train_op, elbo_loss_op])
+				#_, this_adversarial = sess.run([adversarial_train_op, adversarial_loss_op])
+				total_elbo += this_elbo
+				total_adversarial += this_adversarial
+			return total_elbo / count_steps, total_adversarial / count_steps
 
 	def test():
 		total_loss = 0.
@@ -53,27 +60,15 @@ def learning_hooks(session):
 
 	return train, test
 
-def step_hook(session):
-	with tf_models.timer.Timer() as train_timer:
-		train_loss = session.train(session._batches_per_step)
-	test_loss = session.test()
-
-	session.results['times_train'] += [train_timer.interval]
-	session.results['costs_train'] += [train_loss]
-	session.results['costs_test'] += [test_loss]
-
-def after_step_hook(session):
-	train_time = session.results['times_train'][-1]
-	train_loss = session.results['costs_train'][-1]
-	test_loss = session.results['costs_test'][-1]
-
-	examples_per_sec = session._settings['batch_size'] * session._batches_per_step / train_time
-	sec_per_batch = train_time / session.train_batches
-
-	print('epoch {:.3f}, train loss = {:.2f}, test loss = {:.2f} ({:.1f} examples/sec)'.format(session.epoch(), train_loss, test_loss, examples_per_sec))
-
 def make(settings, loss_ops, step):
 	optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + settings['optimizer'])
 
-	train_op = optimizer_lib.training(loss_ops['train_loss'], learning_rate=settings['learning_rate'], step=step)
-	return {'train_loss': train_op}
+	# Divide variables into those we optimize for the ELBO and those for the adversarial training
+	elbo_vars = [var for var in tf.trainable_variables() if not var.name.startswith('vae/discriminator')]
+	adversarial_vars = [var for var in tf.trainable_variables() if var.name.startswith('vae/discriminator')]
+
+	# Add to the Graph operations that train the model.
+	elbo_train_op = optimizer_lib.training(loss_ops['train_loss'], learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step)
+	adversarial_train_op = optimizer_lib.training(loss_ops['adversarial_loss'], learning_rate=settings['adversary_rate'], var_list=adversarial_vars)
+
+	return {'train_loss': elbo_train_op, 'adversarial_loss': adversarial_train_op}

@@ -168,7 +168,7 @@ class Model(Model):
 		with tf.variable_scope('encoder'):
 			self.z_sample = self._enc_z_given_x_eps(self.inputs, self.noise)
 			tf.get_variable_scope().reuse_variables()
-			self.encode = self._enc_z_given_x_eps(self.x_placeholder, self.noise)
+			self.encoder = self._enc_z_given_x_eps(self.x_placeholder, self.noise)
 
 		# The prior on z is also i.i.d. N(0, 1)
 		#dist_z = tf.contrib.distributions.MultivariateNormalDiag(tf.zeros([self.batch_size, self.n_z]), tf.ones([self.batch_size, self.n_z]))
@@ -183,10 +183,10 @@ class Model(Model):
 		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 
 		dist_x_given_z_placeholder = tf.contrib.distributions.Bernoulli(logits=logits_x_placeholder)
-		self.decode = dist_x_given_z_placeholder.sample()
+		self.decoder = dist_x_given_z_placeholder.sample()
 
 		# Log likelihood of reconstructed inputs
-		self.lg_p_x_given_z = dist_x_given_z.log_prob(self.inputs)
+		self.lg_p_x_given_z = tf.reduce_sum(dist_x_given_z.log_prob(self.inputs), 1)
 
 		# Discriminator T(x, z)
 		with tf.variable_scope('discriminator'):
@@ -195,19 +195,7 @@ class Model(Model):
 			self.prior_adversary = self._discriminator(self.inputs, self.z_prior)
 
 	def inference(self):
-		return self.lg_p_x_given_z, self.adversary, self.prior_adversary
-
-	def encoder(self):
-		return self.encode
-
-	def decoder(self):
-		return self.decode
-
-	def x(self):
-		return self.x_placeholder
-
-	def z(self):
-		return self.z_placeholder
+		return {'ll_decoder': self.lg_p_x_given_z, 'adversary': self.adversary, 'prior_adversary': self.prior_adversary}
 
 	def sample_prior(self):
 		return np.random.normal(size=(self.batch_size, self.n_z))

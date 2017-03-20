@@ -149,12 +149,14 @@ class Model(Model):
 
 		self.decoder = dist_x_given_z_placeholder.sample()
 
-		self.lg_p_x_given_z = dist_x_given_z.log_prob(self.inputs)
+		# NOTE: x | z is defined as over each pixel separate, where prior on z is a multivariate
+		# Hence the need to do the tf.reduce_sum op on the former to get down to a single number for each sample
+		self.lg_p_x_given_z = tf.reduce_sum(dist_x_given_z.log_prob(self.inputs), 1)
 		self.lg_p_z = dist_z.log_prob(self.z_sample)
 		self.lg_q_z_given_x = dist_z_given_x.log_prob(self.z_sample)
 
 	def inference(self):
-		return self.lg_p_x_given_z, self.lg_p_z, self.lg_q_z_given_x
+		return {'ll_decoder': self.lg_p_x_given_z, 'll_prior': self.lg_p_z, 'll_encoder': self.lg_q_z_given_x}
 
 	def sample_prior(self):
 		return np.random.normal(size=(self.batch_size, self.n_z))

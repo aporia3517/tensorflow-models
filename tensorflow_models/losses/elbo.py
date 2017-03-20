@@ -27,14 +27,19 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-# TODO: The basic ELBO loss
-# NOTE: What parameters does it require?
+# The basic ELBO loss
 
 # lg_p_x_given_z ~ batch_size x 784
 # lg_p_z
 # lg_q_z_given_x ~ batch_size?
 def loss(lg_p_x_given_z, lg_p_z, lg_q_z_given_x):
-	reconstruction_term = tf.reduce_sum(lg_p_x_given_z, 1) + lg_p_z
+	reconstruction_term = lg_p_x_given_z + lg_p_z
 	regularizer_term = lg_q_z_given_x
 
 	return -tf.reduce_mean(reconstruction_term - regularizer_term)
+
+def make(train_inference, test_inference):
+	train_loss_op = loss(train_inference['ll_decoder'], train_inference['ll_prior'], train_inference['ll_encoder'])
+	test_loss_op = loss(test_inference['ll_decoder'], test_inference['ll_prior'], test_inference['ll_encoder'])
+
+	return {'train_loss': train_loss_op, 'test_loss': test_loss_op}
