@@ -77,3 +77,10 @@ def make(settings, loss_ops, step):
 
 	train_op = optimizer_lib.training(loss_ops['train_loss'], learning_rate=settings['learning_rate'], step=step)
 	return {'train_loss': train_op}
+
+def initialize_results():
+	results = {}
+	results['costs_train'] = []
+	results['times_train'] = []
+	results['costs_test'] = []
+	return results

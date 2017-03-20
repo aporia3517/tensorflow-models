@@ -45,7 +45,7 @@ def _relu_layer(x, weights, biases):
 	return tf.nn.relu(tf.add(tf.matmul(x, weights), biases))
 
 class Model(Model):
-	def __init__(self, inputs):
+	def __init__(self, inputs, settings):
 		# Dimensions of random variables
 		self.batch_size = 100
 		self.n_x = 784

@@ -94,13 +94,8 @@ class SessionContext(object):
 		if self._settings['resume_from'] is None:
 			self.sess.run(self._init_op)
 			self.step = 0
-			self.results = {}
-			self.results['costs_train'] = []
-			self.results['times_train'] = []
-			self.results['costs_test'] = []
-			if self._settings['inference'] == 'avb' or self._settings['inference'] == 'em-avb':
-				self.results['adversarial_train'] = []
-
+			inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
+			self.results = inference_lib.initialize_results()
 			self.prior_noise = self._model.sample_prior()
 		else:
 			# Check that checkpoint file exists
