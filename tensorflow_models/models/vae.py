@@ -26,8 +26,10 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 
-from tensorflow_models.initializations import xavier_init
+import tensorflow_models as tf_models
+from tensorflow_models.initializations import xavier_init, xavier_std
 from tensorflow_models import Model
 
 # TODO: Break into tf_models package
@@ -56,10 +58,8 @@ class Model(Model):
 		self.inputs = inputs
 
 		# Architecture parameters
-		self.n_hidden_recog_1 = 256
-		self.n_hidden_recog_2 = 256
-		self.n_hidden_gener_1 = 256
-		self.n_hidden_gener_2 = 256
+		self.encoder_sizes = [256, 256, self.n_z]
+		self.decoder_sizes = [256, 256, self.n_x]
 
 		self.x_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_x))
 		self.z_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_z))
@@ -70,54 +70,15 @@ class Model(Model):
 	# Encoder: q(z | x)
 	# Returns the parameters for the normal distribution on z given x
 	def _enc_z_given_x(self, inputs):
-		with tf.variable_scope('q_z_given_x'):
-			with tf.variable_scope('layer1'):
-				weights = _weights(shape=(self.n_x, self.n_hidden_recog_1))
-				biases = _biases(shape=self.n_hidden_recog_1)
-				layer1 = _relu_layer(self.inputs, weights, biases)
-
-			with tf.variable_scope('layer2'):
-				weights = _weights(shape=(self.n_hidden_recog_1, self.n_hidden_recog_2))
-				biases = _biases(shape=self.n_hidden_recog_2)
-				layer2 = _relu_layer(layer1, weights, biases)
-
-			with tf.variable_scope('mean'):
-				weights = _weights(shape=(self.n_hidden_recog_2, self.n_z))
-				biases = _biases(shape=self.n_z)
-				mean_z = tf.add(tf.matmul(layer2, weights), biases)
-
-			with tf.variable_scope('log_sigma_sq'):
-				weights = _weights(shape=(self.n_hidden_recog_2, self.n_z))
-				biases = _biases(shape=self.n_z)
-				log_sigma_sq_z = tf.add(tf.matmul(layer2, weights), biases)
-				diag_stdev_z = tf.sqrt(tf.exp(log_sigma_sq_z))
-	
-		return (mean_z, diag_stdev_z)
+		#with tf.variable_scope('q_z_given_x'):
+		return tf_models.layers.gaussian_parameters_mlp(inputs, self.encoder_sizes)
 
 	# Decoder: p(x | z)
 	# Returns parameters for bernoulli distribution on x given z
 	def _dec_x_given_z(self, code):
-		# Generate probabilistic decoder (decoder network), which
-		# maps points in latent space onto a Bernoulli distribution in data space.
-		# The transformation is parametrized and can be learned.
-		with tf.variable_scope('p_x_given_z'):
-			with tf.variable_scope('layer1'):
-				weights = _weights(shape=(self.n_z, self.n_hidden_gener_1))
-				biases = _biases(shape=self.n_hidden_gener_1)
-				layer1 = _relu_layer(code, weights, biases)
-
-			with tf.variable_scope('layer2'):
-				weights = _weights(shape=(self.n_hidden_gener_1, self.n_hidden_gener_2))
-				biases = _biases(shape=self.n_hidden_gener_2)
-				layer2 = _relu_layer(layer1, weights, biases)
-
-			with tf.variable_scope('mean'):
-				weights = _weights(shape=(self.n_hidden_gener_2, self.n_x))
-				biases = _biases(shape=self.n_x)
-				logits = tf.add(tf.matmul(layer2, weights), biases)
-
-		return logits
-
+		#with tf.variable_scope('p_x_given_z'):
+		return tf_models.layers.bernoulli_parameters_mlp(code, self.decoder_sizes)
+		
 	def _lg_probs(self):
 		# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
 		with tf.variable_scope('encoder'):

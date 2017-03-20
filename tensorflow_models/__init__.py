@@ -34,6 +34,7 @@ import numpy as np
 import tensorflow_datasets as tf_data
 import tensorflow_models.optimizers
 import tensorflow_models.contexts
+import tensorflow_models.layers
 
 # Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
 def unflattened_batchshape(settings):

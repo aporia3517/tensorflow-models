@@ -27,7 +27,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
-from tensorflow_models.initializations import xavier_init
+import tensorflow_models as tf_models
+from tensorflow_models.initializations import xavier_init, xavier_std
 from tensorflow_models import Model
 
 # TODO: Best initialization for ReLU biases? -1 or 0.1?
@@ -56,10 +57,11 @@ class Model(Model):
 		self.inputs = inputs
 
 		# Architecture parameters
-		self.n_hidden_recog_1 = 256
-		self.n_hidden_recog_2 = 256
-		self.n_hidden_gener_1 = 256
-		self.n_hidden_gener_2 = 256
+		self.encoder_sizes = [256, 256, self.n_z]
+		self.decoder_sizes = [256, 256, self.n_x]
+		self.desc_x_network_sizes = [256, 256]
+		self.desc_z_network_sizes = [256, 256]
+		self.desc_join_network_sizes = [256, 256, 1]
 
 		self.x_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_x))
 		self.z_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_z))
@@ -71,93 +73,18 @@ class Model(Model):
 	# Returns a sample from z given x and epsilon
 	def _enc_z_given_x_eps(self, inputs, eps):
 		#with tf.variable_scope('encoder'):
-		with tf.variable_scope('q_z_given_x_eps'):
-			with tf.variable_scope('layer1'):
-				weights_x = _weights(shape=(self.n_x, self.n_hidden_recog_1), name='weights_x')
-				weights_eps = _weights(shape=(self.n_eps, self.n_hidden_recog_1), name='weights_eps')
-				biases = _biases(shape=self.n_hidden_recog_1)
-				layer1 = tf.nn.relu(tf.add(tf.add(tf.matmul(inputs, weights_x), tf.matmul(eps, weights_eps)), biases))
-
-			with tf.variable_scope('layer2'):
-				weights = _weights(shape=(self.n_hidden_recog_1, self.n_hidden_recog_2))
-				biases = _biases(shape=self.n_hidden_recog_2)
-				layer2 = _relu_layer(layer1, weights, biases)
-
-			with tf.variable_scope('z'):
-				weights = _weights(shape=(self.n_hidden_recog_2, self.n_z))
-				biases = _biases(shape=self.n_z)
-				z = tf.add(tf.matmul(layer2, weights), biases)
-	
-		return z
+		return tf_models.layers.mlp2(inputs, eps, self.encoder_sizes, final_activation_fn=tf.identity)
 
 	# Decoder: p(x | z)
 	# Returns parameters for bernoulli distribution on x given z
 	def _dec_x_given_z(self, code):
-		# Generate probabilistic decoder (decoder network), which
-		# maps points in latent space onto a Bernoulli distribution in data space.
-		# The transformation is parametrized and can be learned.
-		#with tf.variable_scope('decoder'):
-		with tf.variable_scope('p_x_given_z'):
-			with tf.variable_scope('layer1'):
-				weights = _weights(shape=(self.n_z, self.n_hidden_gener_1))
-				biases = _biases(shape=self.n_hidden_gener_1)
-				layer1 = _relu_layer(code, weights, biases)
-
-			with tf.variable_scope('layer2'):
-				weights = _weights(shape=(self.n_hidden_gener_1, self.n_hidden_gener_2))
-				biases = _biases(shape=self.n_hidden_gener_2)
-				layer2 = _relu_layer(layer1, weights, biases)
-
-			with tf.variable_scope('mean'):
-				weights = _weights(shape=(self.n_hidden_gener_2, self.n_x))
-				biases = _biases(shape=self.n_x)
-				logits = tf.add(tf.matmul(layer2, weights), biases)
-
-		return logits
+		return tf_models.layers.bernoulli_parameters_mlp(code, self.decoder_sizes)
 
 	# Discriminator used for adversarial training in logits
 	def _discriminator(self, x, z):
-		#with tf.variable_scope('discriminator'):
-		with tf.variable_scope('x_network'):
-			with tf.variable_scope('layer1'):
-				weights = _weights(shape=(self.n_x, self.n_hidden_gener_1))
-				biases = _biases(shape=self.n_hidden_gener_1)
-				layer1 = _relu_layer(x, weights, biases)
-					
-			with tf.variable_scope('layer2'):
-				weights = _weights(shape=(self.n_hidden_gener_1, self.n_hidden_gener_2))
-				biases = _biases(shape=self.n_hidden_gener_2)
-				x_layer2 = _relu_layer(layer1, weights, biases)
-
-		with tf.variable_scope('z_network'):
-			with tf.variable_scope('layer1'):
-				weights = _weights(shape=(self.n_z, self.n_hidden_gener_1))
-				biases = _biases(shape=self.n_hidden_gener_1)
-				layer1 = _relu_layer(z, weights, biases)
-
-			with tf.variable_scope('layer2'):
-				weights = _weights(shape=(self.n_hidden_gener_1, self.n_hidden_gener_2))
-				biases = _biases(shape=self.n_hidden_gener_2)
-				z_layer2 = _relu_layer(layer1, weights, biases)
-
-		with tf.variable_scope('combine_network'):
-			with tf.variable_scope('layer1'):
-				weights_x = _weights(shape=(self.n_hidden_gener_2, self.n_hidden_gener_1), name='weights_x')
-				weights_z = _weights(shape=(self.n_hidden_gener_2, self.n_hidden_gener_1), name='weights_z')
-				biases = _biases(shape=self.n_hidden_gener_1)
-				layer1 = tf.nn.relu(tf.add(tf.add(tf.matmul(x_layer2, weights_x), tf.matmul(z_layer2, weights_z)), biases))
-
-			with tf.variable_scope('layer2'):
-				weights = _weights(shape=(self.n_hidden_gener_1, self.n_hidden_gener_2))
-				biases = _biases(shape=self.n_hidden_gener_2)
-				layer2 = _relu_layer(layer1, weights, biases)
-					
-			with tf.variable_scope('output'):
-				weights = _weights(shape=(self.n_hidden_gener_2, 1))
-				biases = _biases(shape=1)
-				logits = tf.add(tf.matmul(layer2, weights), biases)
-
-		return logits
+		x_layer = tf_models.layers.mlp(x, self.desc_x_network_sizes, scope='x_layer')
+		z_layer = tf_models.layers.mlp(z, self.desc_z_network_sizes, scope='z_layer')
+		return tf_models.layers.mlp2(x_layer, z_layer, self.desc_join_network_sizes, scope='join_layer', final_activation_fn=tf.identity)
 
 	# Create operations to calculate terms needed for loss function
 	def _lg_probs(self):
