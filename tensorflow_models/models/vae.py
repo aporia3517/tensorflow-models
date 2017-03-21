@@ -29,20 +29,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 import tensorflow_models as tf_models
-from tensorflow_models.initializations import xavier_init, xavier_std
 from tensorflow_models import Model
-
-# TODO: Break into tf_models package
-# TODO: How to give uniform interface to initializers?
-def _weights(shape, name='weights', initializer=xavier_init):
-	return tf.get_variable(name, initializer=initializer(*shape))
-
-def _biases(shape, name='biases', constant=0.1):
-	return tf.get_variable(name, initializer=tf.constant(constant, shape=[shape]))
-
-	# TODO: more than one variable into ReLU layer
-def _relu_layer(x, weights, biases):
-	return tf.nn.relu(tf.add(tf.matmul(x, weights), biases))
 
 # TODO: VAE takes settings to get batchsize and size of input
 class Model(Model):

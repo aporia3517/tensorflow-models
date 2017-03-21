@@ -65,6 +65,17 @@ def learning_hooks(session):
 
 	return train, test
 
+def initialize_hook(session):
+	# See where the test loss starts
+	if session._settings['resume_from'] is None:
+		# Do a test evaluation before any training happens
+		test_loss = session.test()
+		session.results['costs_test'] += [test_loss]
+	else:
+		test_loss = session.results['costs_test'][-1]
+
+	print('epoch {:.3f}, test loss = {:.2f}'.format(session.epoch(), test_loss))
+
 def step_hook(session):
 	with tf_models.timer.Timer() as train_timer:
 		elbo_value, adversary_value = session.train(session._batches_per_step)
@@ -83,7 +94,7 @@ def after_step_hook(session):
 	adversary_value = session.results['adversary_train'][-1]
 
 	examples_per_sec = session._settings['batch_size'] * session._batches_per_step / train_time
-	sec_per_batch = train_time / session.train_batches
+	sec_per_batch = train_time / session._batches_per_step
 
 	print('epoch {:.3f}, train loss = {:.2f}, adv loss = {:.2f}, test loss = {:.2f} ({:.1f} examples/sec)'.format(session.epoch(), train_loss, adversary_value, test_loss, examples_per_sec))
 

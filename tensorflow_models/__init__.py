@@ -119,7 +119,15 @@ class Model(object):
 
 		self.z = self._model_train.z_placeholder
 		self.x = self._model_train.x_placeholder
-		self.encoder = self._model_train.encoder
+
+		# NOTE: GAN models etc. won't have an encoder
+		try:
+			self._model_train.encoder
+		except AttributeError:
+			self.encoder = None
+		else:
+			self.encoder = self._model_train.encoder
+		
 		self.decoder = self._model_train.decoder
 
 		# Create the loss operations

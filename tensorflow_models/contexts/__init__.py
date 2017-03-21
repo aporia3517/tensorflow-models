@@ -145,9 +145,11 @@ class LearningContext(CoordinatorContext):
 	def __enter__(self):
 		super(LearningContext, self).__enter__()
 		self._set_learning_hooks()
+		self._set_initialize_hook()
 		self._set_step_hook()
 		self._set_after_step_hook()
-		self._initialize_hook()
+		self._initialize_hook(self)
+		self._save_snapshot()
 		return self
 
 	def __exit__(self, *args):
@@ -169,17 +171,9 @@ class LearningContext(CoordinatorContext):
 			self._count_steps = self._settings['count_epochs'] * float(self.train_batches) / self._batches_per_step
 
 	# Called before learning is started
-	def _initialize_hook(self):
-		# See where the test loss starts
-		if self._settings['resume_from'] is None:
-			# Do a test evaluation before any training happens
-			test_loss = self.test()
-			self.results['costs_test'] += [test_loss]
-		else:
-			test_loss = self.results['costs_test'][-1]
-
-		print('epoch {:.3f}, test loss = {:.2f}'.format(self.epoch(), test_loss))
-		self._save_snapshot()
+	def _set_initialize_hook(self):
+		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
+		self._initialize_hook = inference_lib.initialize_hook
 
 	# Called every run()
 	def _set_step_hook(self):
