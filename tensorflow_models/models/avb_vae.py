@@ -57,11 +57,11 @@ class Model(Model):
 		self.inputs = inputs
 
 		# Architecture parameters
-		self.encoder_sizes = [256, 256, self.n_z]
-		self.decoder_sizes = [256, 256, self.n_x]
-		self.desc_x_network_sizes = [256, 256]
-		self.desc_z_network_sizes = [256, 256]
-		self.desc_join_network_sizes = [256, 256, 1]
+		self.encoder_sizes = [128, self.n_z]
+		self.decoder_sizes = [128, self.n_x]
+		self.desc_x_network_sizes = [128]
+		self.desc_z_network_sizes = [128]
+		self.desc_join_network_sizes = [128, 1]
 
 		self.x_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_x))
 		self.z_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_z))

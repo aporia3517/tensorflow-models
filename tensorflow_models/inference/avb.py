@@ -48,10 +48,10 @@ def learning_hooks(session):
 			total_adversarial = 0.
 			for idx in range(count_steps):
 				# Try interweaving
-				#_, this_elbo, _, this_adversarial = sess.run([elbo_train_op, elbo_loss_op, adversarial_train_op, adversarial_loss_op])
-				_, this_elbo = sess.run([elbo_train_op, elbo_loss_op])
-				for jdx in range(10):
-					_, this_adversarial = sess.run([adversarial_train_op, adversarial_loss_op])
+				_, this_elbo, _, this_adversarial = sess.run([elbo_train_op, elbo_loss_op, adversarial_train_op, adversarial_loss_op])
+				#_, this_elbo = sess.run([elbo_train_op, elbo_loss_op])
+				#for jdx in range(10):
+				#	_, this_adversarial = sess.run([adversarial_train_op, adversarial_loss_op])
 				total_elbo += this_elbo
 				total_adversarial += this_adversarial
 			return total_elbo / count_steps, total_adversarial / count_steps

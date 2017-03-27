@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -40,7 +40,7 @@ def sample_grid(outputfilename, samples, ext = 'png', imgrange = (0.0, 1.0)):
 	samples = (samples - range_min) / np.float((range_max - range_min))
 	samples_pr_side = int(np.sqrt(n))
 
-	plt.figure(figsize = (7, 7))
+	plt.figure(figsize = (7, 7), dpi=80)
 
 	# Greyscale images
 	if c == 1:
@@ -64,10 +64,70 @@ def sample_grid(outputfilename, samples, ext = 'png', imgrange = (0.0, 1.0)):
 				idx += 1
 		plt.imshow(canvas)
 
-	plt.savefig(outputfilename + '.' + ext)
+	plt.savefig(outputfilename + '.' + ext, dpi=80)
 	plt.close()
 
-def experiment(outputfilename, title, y, x = None, ylim = (0., 1.0), ext = 'png'):	
+def gan_experiment(filepath, title, ys, ext='png'):
+	x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
+
+	fig = plt.figure(figsize = (9.5, 5), dpi=80)
+	fig.suptitle(title)
+
+	ax1 = fig.add_subplot(1, 2, 1, title='generator')
+	ax1.plot(x, ys[1])
+
+	ax2 = fig.add_subplot(1, 2, 2, title='discriminator')
+	ax2.plot(x, ys[0])
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
+def wgan_experiment(filepath, title, ys, ext='png'):
+	x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
+
+	fig = plt.figure(figsize = (9.5, 5), dpi=80)
+	fig.suptitle(title)
+
+	ax1 = fig.add_subplot(1, 2, 1, title='generator')
+	ax1.plot(x, ys[1])
+
+	ax2 = fig.add_subplot(1, 2, 2, title='critic')
+	ax2.plot(x, ys[0])
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
+def avb_experiment(filepath, title, ys, ext='png'):
+	x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
+
+	fig = plt.figure(figsize = (9.5, 5), dpi=80)
+	fig.suptitle(title)
+
+	ax1 = fig.add_subplot(1, 2, 1, title='elbo-like')
+	ax1.plot(x, ys[1])
+
+	ax2 = fig.add_subplot(1, 2, 2, title='discriminator')
+	ax2.plot(x, ys[0])
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
+def em_avb_experiment(filepath, title, ys, ext='png'):
+	x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
+
+	fig = plt.figure(figsize = (9.5, 5), dpi=80)
+	fig.suptitle(title)
+
+	ax1 = fig.add_subplot(1, 2, 1, title='elbo-like')
+	ax1.plot(x, ys[1])
+
+	ax2 = fig.add_subplot(1, 2, 2, title='critic')
+	ax2.plot(x, ys[0])
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
+def experiment(outputfilename, title, y, x = None, ylim = (0., 1.0), ext='png'):
 	if x is None:
 		x = np.arange(0, len(y), dtype=np.int32)
 
