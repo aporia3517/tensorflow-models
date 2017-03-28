@@ -1,4 +1,4 @@
 *.pyc
-/tensorflow_datasets.egg-info/*
+/tensorflow_models.egg-info/*
 /examples/*.png
 /examples/*.txt

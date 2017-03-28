@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -25,7 +25,10 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import cPickle as pickle
+try:
+	import cPickle as pickle
+except:
+	import pickle
 import utils.file
 
 # Save results so we can plot them later and resume from snapshots

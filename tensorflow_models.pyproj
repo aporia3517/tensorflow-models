@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{2554f21b-0f43-4fc8-82f2-4786a9c2e3e7}</ProjectGuid>
+    <ProjectHome>tensorflow_models\</ProjectHome>
+    <StartupFile>initializations.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>Global|VisualStudio|TensorFlow</InterpreterId>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="contexts\__init__.py" />
+    <Compile Include="inference\avb.py" />
+    <Compile Include="inference\gan.py" />
+    <Compile Include="inference\svb.py" />
+    <Compile Include="inference\__init__.py" />
+    <Compile Include="initializations.py" />
+    <Compile Include="layers\__init__.py" />
+    <Compile Include="losses\analytic_kl.py" />
+    <Compile Include="losses\avb_elbo.py" />
+    <Compile Include="losses\elbo.py" />
+    <Compile Include="losses\elbo_aux.py" />
+    <Compile Include="losses\gan.py" />
+    <Compile Include="losses\__init__.py" />
+    <Compile Include="models\avb_vae.py" />
+    <Compile Include="models\gan.py" />
+    <Compile Include="models\vae.py" />
+    <Compile Include="models\__init__.py" />
+    <Compile Include="optimizers\adam.py" />
+    <Compile Include="optimizers\rmsprop.py" />
+    <Compile Include="optimizers\sgd.py" />
+    <Compile Include="optimizers\__init__.py" />
+    <Compile Include="plot.py" />
+    <Compile Include="settings.py" />
+    <Compile Include="snapshot.py" />
+    <Compile Include="timer.py" />
+    <Compile Include="__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="contexts" />
+    <Folder Include="inference" />
+    <Folder Include="layers" />
+    <Folder Include="losses" />
+    <Folder Include="models" />
+    <Folder Include="optimizers" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|VisualStudio|TensorFlow" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
