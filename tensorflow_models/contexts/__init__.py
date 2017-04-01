@@ -34,7 +34,11 @@ import tensorflow_models.timer
 import tensorflow_models.snapshot
 import tensorflow_models.plot
 
-# Initializes TensorFlow and loads data
+# Sets a new or existing graph as the default
+# Sets the random number seeds for TF and NumPy
+# Creates a global step variable on the host
+# If specified, sets operations under the context to a given device
+# Stores the graph reference
 class GraphContext(object):
 	def __init__(self, graph=None, np_seed=1234, tf_seed=1234, device=None):
 		if not graph is None:
@@ -76,7 +80,6 @@ class GraphContext(object):
 	def __exit__(self, *args):
 		if not self._device_context is None:
 			self._device_context.__exit__(*args)
-
 		self._graph_context.__exit__(*args)
 
 # TODO: Make this inherit from ModelContext

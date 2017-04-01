@@ -29,6 +29,7 @@ import os
 # Create a dictionary of the default experiment settings
 def defaults():
 	return {
+		'labels': False,	# Whether to return labels or not
 		'np_seed': 1234, # Random seed for NumPy
 		'tf_seed': 1234, # Random seed for TensorFlow
 		'device': 'gpu:0',
@@ -36,7 +37,7 @@ def defaults():
 		'suffix': None,	# Suffix to append to experiment name
 		'dataset': 'mnist',	# Name of datasets passed to tf_data
 		'num_threads': 2,	# Number of threads to use for queue runners
-		'transformations': None,	# Transformations dictionary passed to tf_data
+		'transformations': {'flatten': None},	# Transformations dictionary passed to tf_data
 		'model': 'vae', # Name of model (for now, does nothing)
 		'loss': 'elbo',
 		'inference': 'svb',	# Type of inference: svb => Stochastic Variational Bayes, avb => Adversarial Variational Bayes

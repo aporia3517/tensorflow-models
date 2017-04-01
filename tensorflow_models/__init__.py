@@ -69,49 +69,48 @@ def host():
 def device(settings):
 	return tf.device("/" + settings['device'])
 
-# TODO: Would it be better to expand the settings dictionary when it is called and have named arguments?
-# NOTE: Have flatten as a flag rather than a setting because I believe it will depend on the model type which input shape is required
-def unsupervised_inputs(settings, flatten=True):
-	train_samples = tf_data.inputs(
-		name=settings['dataset'],
-		subset=tf_data.Subset.TRAIN,
-		return_labels=False,
-		batch_size=settings['batch_size'],
-		num_threads=settings['num_threads'],
-		flatten=flatten,
-		transformations=settings['transformations'])
+def create(settings):
+	with host():
+		inputs(settings)
 
-	test_samples = tf_data.inputs(
-		name=settings['dataset'],
-		subset=tf_data.Subset.TEST,
-		return_labels=False,
-		batch_size=settings['batch_size'],
-		num_threads=settings['num_threads'],
-		flatten=flatten,
-		transformations=settings['transformations'])
+	#with device(settings):
+	#	#model(settings)
+	#	#losses(settings)
+	#	#optimizers(settings)
+
+# TODO: Would it be better to expand the settings dictionary when it is called and have named arguments?
+def inputs(settings):
+	with tf.name_scope('train'):
+		train_samples = tf_data.inputs(
+			name=settings['dataset'],
+			subset=tf_data.Subset.TRAIN,
+			return_labels=settings['labels'],
+			batch_size=settings['batch_size'],
+			num_threads=settings['num_threads'],
+			transformations=settings['transformations'])
+
+	if settings['labels']:
+		tf.add_to_collection(tf_models.GraphKeys.TRAIN_INPUTS, train_samples[0])
+		tf.add_to_collection(tf_models.GraphKeys.TRAIN_INPUTS, train_samples[1])
+	else:
+		tf.add_to_collection(tf_models.GraphKeys.TRAIN_INPUTS, train_samples)
+
+	with tf.name_scope('train'):
+		test_samples = tf_data.inputs(
+			name=settings['dataset'],
+			subset=tf_data.Subset.TEST,
+			return_labels=settings['labels'],
+			batch_size=settings['batch_size'],
+			num_threads=settings['num_threads'],
+			transformations=settings['transformations'])
+
+	if settings['labels']:
+		tf.add_to_collection(tf_models.GraphKeys.TEST_INPUTS, test_samples[0])
+		tf.add_to_collection(tf_models.GraphKeys.TEST_INPUTS, test_samples[1])
+	else:
+		tf.add_to_collection(tf_models.GraphKeys.TEST_INPUTS, test_samples)
 
 	return train_samples, test_samples
-
-def supervised_inputs(settings, flatten=True):
-	train_samples, train_labels = tf_data.inputs(
-		name=settings['dataset'],
-		subset=tf_data.Subset.TRAIN,
-		return_labels=True,
-		batch_size=settings['batch_size'],
-		num_threads=settings['num_threads'],
-		flatten=flatten,
-		transformations=settings['transformations'])
-
-	test_samples, test_labels = tf_data.inputs(
-		name=settings['dataset'],
-		subset=tf_data.Subset.TEST,
-		return_labels=True,
-		batch_size=settings['batch_size'],
-		num_threads=settings['num_threads'],
-		flatten=flatten,
-		transformations=settings['transformations'])
-
-	return train_samples, train_labels, test_samples, test_labels
 
 # Load a model
 class Model(object):
