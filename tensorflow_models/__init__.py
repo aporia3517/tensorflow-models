@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -36,6 +36,14 @@ import tensorflow_models.optimizers
 import tensorflow_models.contexts
 import tensorflow_models.layers
 
+class GraphKeys(object):
+	TRAIN_INPUTS = 'train_inputs'
+	TEST_INPUTS = 'test_inputs'
+	VALIDATION_INPUTS = 'validation_inputs'
+	TRAIN_OUTPUTS = 'train_outputs'
+	TEST_OUTPUTS = 'test_outputs'
+	TEST_OUTPUTS = 'validation_outputs'
+
 # Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
 def unflattened_batchshape(settings):
 	return (settings['batch_size'],) + tf_data.sample_shape(settings['dataset'])
@@ -55,10 +63,10 @@ def local_step(settings, name='local_step', start=0):
 	with cpu_device(settings):
 		step = tf.Variable(start, name=name, trainable=False)
 
-def cpu_device(settings):
+def host():
 	return tf.device("/cpu:0")
 
-def gpu_device(settings):
+def device(settings):
 	return tf.device("/" + settings['device'])
 
 # TODO: Would it be better to expand the settings dictionary when it is called and have named arguments?

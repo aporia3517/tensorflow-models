@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -35,36 +35,49 @@ import tensorflow_models.snapshot
 import tensorflow_models.plot
 
 # Initializes TensorFlow and loads data
-class Context(object):
-	def __init__(self, settings):
-		self._graph = tf.Graph().as_default()
-		self._settings = settings
+class GraphContext(object):
+	def __init__(self, graph=None, np_seed=1234, tf_seed=1234, device=None):
+		if not graph is None:
+			# TODO: Assert that graph is of correct class, tf.Graph?
+			self.graph = graph
+		else:
+			self.graph = tf.Graph()
+
+		if not device is None:
+			self._device_context = tf.device(device)
+		else:
+			self._device_context = None
+
+		self._np_seed = np_seed
+		self._tf_seed = tf_seed
 
 	def __enter__(self):
-		# Use the default graph
-		self._graph.__enter__()
+		# Use the context's graph for all subsequent operatons
+		self._graph_context = self.graph.as_default()
+		self._graph_context.__enter__()
 
 		# Fix seeds for reproducibility
 		self._set_seeds()
 
-		# Create input nodes and global step
-		self._create_inputs()
+		# Create global step
+		with tf_models.host():
+			tf_models.global_step()
+
+		# If specified, use a certain device by default
+		if not self._device_context is None:
+			self._device_context.__enter__()
 		
 		return self
 
 	def _set_seeds(self):
-		np.random.seed(self._settings['np_random_seed'])
-		tf.set_random_seed(self._settings['tf_random_seed'])
-
-	def _create_inputs(self):
-		with tf_models.cpu_device(self._settings):
-			self.train_samples, self.test_samples = tf_models.unsupervised_inputs(self._settings)
-			self.global_step = tf_models.global_step()
+		np.random.seed(self._np_seed)
+		tf.set_random_seed(self._tf_seed)
 
 	def __exit__(self, *args):
-		self._graph.__exit__(*args)
+		if not self._device_context is None:
+			self._device_context.__exit__(*args)
 
-# TODO: Make a model context that inherits from Context
+		self._graph_context.__exit__(*args)
 
 # TODO: Make this inherit from ModelContext
 class SessionContext(object):

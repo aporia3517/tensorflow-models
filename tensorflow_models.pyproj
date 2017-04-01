@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{2554f21b-0f43-4fc8-82f2-4786a9c2e3e7}</ProjectGuid>
     <ProjectHome>tensorflow_models\</ProjectHome>
-    <StartupFile>initializations.py</StartupFile>
+    <StartupFile>__init__.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>

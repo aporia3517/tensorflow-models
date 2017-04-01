@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -29,8 +29,8 @@ import os
 # Create a dictionary of the default experiment settings
 def defaults():
 	return {
-		'np_random_seed': 0, # Random seed for NumPy
-		'tf_random_seed': 0, # Random seed for TensorFlow
+		'np_seed': 1234, # Random seed for NumPy
+		'tf_seed': 1234, # Random seed for TensorFlow
 		'device': 'gpu:0',
 		'name': 'default',	# Name of experiment
 		'suffix': None,	# Suffix to append to experiment name
