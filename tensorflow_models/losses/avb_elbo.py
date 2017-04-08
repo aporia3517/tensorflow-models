@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -26,24 +26,26 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
+import tensorflow_models as tf_models
 
 # Adversarial variational Bayes loss
 
 # lg_p_x_given_z ~ batch_size x 784
 # adversary ~ ?
 # prior_adversary ~ ?
-def loss(lg_p_x_given_z, adversary, prior_adversary):	
+def loss(lg_p_x_given_z, discriminator, prior_discriminator):	
 	# Eq (3.9)
 	# NOTE: Take negative since we are minimizing
 	elbo_loss = -tf.reduce_mean(-adversary + lg_p_x_given_z)
 
 	# Eq (3.3)
-	adversarial_loss = -tf.reduce_mean(tf.log(tf.nn.sigmoid(adversary)) + tf.log(1. - tf.nn.sigmoid(prior_adversary)))
+	discriminator_loss = -tf.reduce_mean(tf_models.safe_log(tf.nn.sigmoid(adversary)) + tf_models.safe_log(1. - tf.nn.sigmoid(prior_adversary)))
 
-	return elbo_loss, adversarial_loss
+	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/discriminator')
 
-def make(train_inference, test_inference):
-	train_loss_op, _ = loss(train_inference['ll_decoder'], train_inference['adversary'], train_inference['prior_adversary'])
-	test_loss_op, adversarial_loss_op = loss(test_inference['ll_decoder'], test_inference['adversary'], test_inference['prior_adversary'])
+def create(name='train'):
+	lg_p_x_given_z = tf_models.outputs(name + '/p_x_given_z/log_prob')
+	discriminator = tf_models.outputs(name + '/discriminator')
+	prior_discriminator = tf_models.outputs(name + '/prior_discriminator')
 
-	return {'train_loss': train_loss_op, 'test_loss': test_loss_op, 'adversarial_loss': adversarial_loss_op}
+	return loss(lg_p_x_given_z, discriminator, prior_discriminator, name=name)

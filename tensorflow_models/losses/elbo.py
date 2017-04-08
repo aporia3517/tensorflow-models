@@ -29,15 +29,11 @@ import tensorflow as tf
 import tensorflow_models as tf_models
 
 # The basic ELBO loss
-
-# lg_p_x_given_z ~ batch_size x 784
-# lg_p_z
-# lg_q_z_given_x ~ batch_size?
 def loss(lg_p_x_given_z, lg_p_z, lg_q_z_given_x, name):
 	reconstruction_term = lg_p_x_given_z + lg_p_z
 	regularizer_term = lg_q_z_given_x
 
-	return tf.identity(-tf.reduce_mean(reconstruction_term - regularizer_term), name=name)
+	return tf.identity(-tf.reduce_mean(reconstruction_term - regularizer_term), name=name+'/elbo')
 
 def create(name='train'):
 	lg_p_x_given_z = tf_models.outputs(name + '/p_x_given_z/log_prob')
