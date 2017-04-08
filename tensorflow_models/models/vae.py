@@ -45,8 +45,8 @@ def create_placeholders(settings):
 	return x, z
 
 def create_prior(settings):
-	dist_prior = tf_models.standard_normal(latentshape(settings), name='p_z')
-	return dist_prior.sample(name='sample')
+	dist_prior = tf_models.standard_normal(latentshape(settings))
+	return tf.identity(dist_prior.sample(), name='p_z/sample')
 
 def latentshape(settings):
 	return [settings['batch_size'], settings['latent_dimension']]
@@ -68,8 +68,8 @@ def create_encoder(settings, reuse=True):
 
 	with tf.variable_scope('encoder', reuse=reuse):
 		mean_z, diag_stdev_z = encoder_network(settings, x_placeholder)
-		dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z, name='q_z_given_x')
-		encoder = dist_z_given_x.sample(name='sample')
+		dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z)
+		encoder = tf.identity(dist_z_given_x.sample(name='sample'), name='q_z_given_x/sample')
 	return encoder
 
 def create_decoder(settings, reuse=True):
@@ -78,17 +78,17 @@ def create_decoder(settings, reuse=True):
 
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_placeholder)
-		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x, name='p_x_given_z')
-		decoder = dist_x_given_z.sample(name='sample')
+		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
+		decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
 	return decoder
 
 def create_probs(settings, inputs, reuse=False):
-	dist_prior = tf_models.standard_normal(latentshape(settings), name='p_z')
+	dist_prior = tf_models.standard_normal(latentshape(settings))
 
 	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
 	with tf.variable_scope('encoder', reuse=reuse):
 		mean_z, diag_stdev_z = encoder_network(settings, inputs)
-	dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z, name='q_z_given_x')
+	dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z)
 
 	# Draw one sample z from Gaussian distribution
 	eps = tf.random_normal(latentshape(settings), 0, 1, dtype=tf.float32)
@@ -102,7 +102,7 @@ def create_probs(settings, inputs, reuse=False):
 	# NOTE: x | z is defined as over each pixel separate, where prior on z is a multivariate
 	# Hence the need to do the tf.reduce_sum op on the former to get down to a single number for each sample
 	lg_p_x_given_z = tf.reduce_sum(dist_x_given_z.log_prob(inputs), 1, name='p_x_given_z/log_prob')
-	lg_p_z = dist_prior.log_prob(z_sample)
-	lg_q_z_given_x = dist_z_given_x.log_prob(z_sample)
+	lg_p_z = tf.identity(dist_prior.log_prob(z_sample), name='p_z/log_prob')
+	lg_q_z_given_x = tf.identity(dist_z_given_x.log_prob(z_sample), name='q_z_given_x/log_prob')
 
 	return lg_p_x_given_z, lg_p_z, lg_q_z_given_x

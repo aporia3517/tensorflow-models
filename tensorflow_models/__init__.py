@@ -43,6 +43,8 @@ class GraphKeys(object):
 	OUTPUTS = 'outputs'
 	ENCODERS = 'encoders'
 	DECODERS = 'decoders'
+	LOSSES = 'losses'
+	OPTIMIZERS = 'optimizers'
 
 # Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
 def unflattened_batchshape(settings):
@@ -90,8 +92,8 @@ def create(settings):
 
 	with device(settings):
 		model(settings)
-	#	#losses(settings)
-	#	#optimizers(settings)
+		losses(settings)
+		optimizers(settings)
 
 # TODO: Would it be better to expand the settings dictionary when it is called and have named arguments?
 def inputs(settings):
@@ -135,6 +137,22 @@ def labels(subset=tf_data.Subset.TRAIN):
 			return op
 	return None
 
+# Get trainable variables with a given substring
+def vars(name):
+	variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+	selected = []
+	for v in variables:
+		if name in v.name:
+			selected.append(v)
+	return v
+
+def outputs(name):
+	ops = tf.get_collection(GraphKeys.OUTPUTS)
+	for op in ops:
+		if name in op.name:
+			return op
+	raise ValueError('No output operation with substring "{}" exists'.format(name))
+
 def samples_placeholder():
 	placeholders = tf.get_collection(GraphKeys.PLACEHOLDERS)
 	for p in placeholders:
@@ -177,7 +195,10 @@ def model(settings):
 		tf.add_to_collection(GraphKeys.DECODERS, model.create_decoder(settings, reuse=True))
 
 def losses(settings):
-	pass
+	loss_lib = importlib.import_module('tensorflow_models.losses.' + settings['loss'])
+	with tf.name_scope('losses'):
+		tf.add_to_collection(GraphKeys.LOSSES, loss_lib.create('train'))
+		tf.add_to_collection(GraphKeys.LOSSES, loss_lib.create('test'))
 
 def optimizers(settings):
 	pass
