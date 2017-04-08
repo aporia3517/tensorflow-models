@@ -24,11 +24,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import six
 import numpy as np
-try:
-	import cPickle as pickle
-except:
-	import pickle
+from six.moves import cPickle as pickle
 import utils.file
 
 # Save results so we can plot them later and resume from snapshots

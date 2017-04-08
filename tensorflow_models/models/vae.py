@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -31,80 +31,76 @@ import tensorflow.contrib.slim as slim
 import tensorflow_models as tf_models
 from tensorflow_models import Model
 
-# TODO: VAE takes settings to get batchsize and size of input
-class Model(Model):
-	def __init__(self, inputs, settings):
-		# Dimensions of random variables
-		# TODO: Get variables from settings
-		# TODO: Take an architecture variable
-		self.batch_size = 100
-		self.n_x = 784
-		self.n_z = 100
+# Architecture stuff
+#encoder_sizes = [256, 256] # self.n_z
+#decoder_sizes = [256, 256] # self.n_x
 
-		# Save input node
-		self.inputs = inputs
+#def create(settings):
+#	# For the moment, we require a flattened input
+#	assert('flatten' in settings['transformations'])
 
-		# Architecture parameters
-		self.encoder_sizes = [256, 256, self.n_z]
-		self.decoder_sizes = [256, 256, self.n_x]
+def create_placeholders(settings):
+	x = tf.placeholder(tf.float32, shape=tf_models.batchshape(settings), name='samples')
+	z = tf.placeholder(tf.float32, shape=latentshape(settings), name='codes')
+	return x, z
 
-		self.x_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_x))
-		self.z_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_z))
+def create_prior(settings):
+	global dist_prior
+	dist_prior = tf_models.standard_normal(latentshape(settings))
+	return dist_z.sample(name='sample')
 
-		# Call function that creates model and network
-		self._lg_probs()
+def latentshape(settings):
+	return [settings['batchsize'], settings['latent_dimension']]
 
-	# Encoder: q(z | x)
-	# Returns the parameters for the normal distribution on z given x
-	def _enc_z_given_x(self, inputs):
-		#with tf.variable_scope('q_z_given_x'):
-		return tf_models.layers.gaussian_parameters_mlp(inputs, self.encoder_sizes)
+# Encoder: q(z | x)
+# Returns the parameters for the normal distribution on z given x
+def encoder_network(settings, inputs):
+	#with tf.variable_scope('q_z_given_x'):
+	return tf_models.layers.gaussian_parameters_mlp(inputs, settings['encoder_sizes'] + [settings['latent_dimension']])
 
-	# Decoder: p(x | z)
-	# Returns parameters for bernoulli distribution on x given z
-	def _dec_x_given_z(self, code):
-		#with tf.variable_scope('p_x_given_z'):
-		return tf_models.layers.bernoulli_parameters_mlp(code, self.decoder_sizes)
-		
-	def _lg_probs(self):
-		# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
-		with tf.variable_scope('encoder'):
-			mean_z, diag_stdev_z = self._enc_z_given_x(self.inputs)
-			tf.get_variable_scope().reuse_variables()
-			mean_z_placeholder, diag_stdev_z_placeholder = self._enc_z_given_x(self.x_placeholder)
+# Decoder: p(x | z)
+# Returns parameters for bernoulli distribution on x given z
+def decoder_network(settings, code):
+	#with tf.variable_scope('p_x_given_z'):
+	return tf_models.layers.bernoulli_parameters_mlp(code, settings['decoder_sizes'] + tf_models.flattened_shape(settings))
 
+def create_encoder(settings, reuse=True):
+	x_placeholder = tf_models.samples_placeholder()
+	with tf.variable_scope('encoder', reuse=reuse):
+		mean_z, diag_stdev_z = encoder_network(settings, x_placeholder)
 		dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z)
-		dist_z_given_x_placeholder = tf.contrib.distributions.MultivariateNormalDiag(mean_z_placeholder, diag_stdev_z_placeholder)
+		encoder = dist_z_given_x.sample(name='samples')
+	return encoder
 
-		self.encoder = dist_z_given_x_placeholder.sample()
-
-		# Draw one sample z from Gaussian distribution
-		eps = tf.random_normal((self.batch_size, self.n_z), 0, 1, dtype=tf.float32)
-		self.z_sample = tf.add(mean_z, tf.multiply(diag_stdev_z, eps))
-
-		# Define the prior distribution and a sample from it
-		dist_z = tf.contrib.distributions.MultivariateNormalDiag(tf.zeros([self.batch_size, self.n_z]), tf.ones([self.batch_size, self.n_z]))
-		self.z_prior = dist_z.sample()
-
-		# Use generator to determine mean of Bernoulli distribution of reconstructed input
-		with tf.variable_scope('decoder'):
-			logits_x = self._dec_x_given_z(self.z_sample)
-			tf.get_variable_scope().reuse_variables()
-			logits_x_placeholder = self._dec_x_given_z(self.z_placeholder)
-
+def create_decoder(settings):
+	z_placeholder = tf_models.code_placeholder()
+	with tf.variable_scope('decoder', reuse=reuse):
+		logits_x = decoder_network(z_placeholder)
 		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
-		dist_x_given_z_placeholder = tf.contrib.distributions.Bernoulli(logits=logits_x_placeholder)
+		decoder = dist_x_given_z.sample(name='samples')
+	return decoder
 
-		self.decoder = dist_x_given_z_placeholder.sample()
+def create_probs(settings, inputs, reuse=False):
+	#prior_op = tf_models.sample_prior()
 
-		# NOTE: x | z is defined as over each pixel separate, where prior on z is a multivariate
-		# Hence the need to do the tf.reduce_sum op on the former to get down to a single number for each sample
-		self.lg_p_x_given_z = tf.reduce_sum(dist_x_given_z.log_prob(self.inputs), 1)
-		self.lg_p_z = dist_z.log_prob(self.z_sample)
-		self.lg_q_z_given_x = dist_z_given_x.log_prob(self.z_sample)
+	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
+	with tf.variable_scope('encoder', reuse=reuse):
+		mean_z, diag_stdev_z = encoder_network(settings, inputs)
+		dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z)
 
-	def inference(self):
-		return {'ll_decoder': self.lg_p_x_given_z, 'll_prior': self.lg_p_z, 'll_encoder': self.lg_q_z_given_x}
+	# Draw one sample z from Gaussian distribution
+	eps = tf.random_normal((self.batch_size, self.n_z), 0, 1, dtype=tf.float32)
+	z_sample = tf.add(mean_z, tf.multiply(diag_stdev_z, eps))
 
-	def sample_prior(self):
-		return np.random.normal(size=(self.batch_size, self.n_z))
+	# Use generator to determine mean of Bernoulli distribution of reconstructed input
+	with tf.variable_scope('decoder', reuse=reuse):
+		logits_x = decoder_network(z_sample)	
+		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
+	
+	# NOTE: x | z is defined as over each pixel separate, where prior on z is a multivariate
+	# Hence the need to do the tf.reduce_sum op on the former to get down to a single number for each sample
+	lg_p_x_given_z = tf.reduce_sum(dist_x_given_z.log_prob(self.inputs), 1, name='lg_p_x_given_z')
+	lg_p_z = dist_prior.log_prob(self.z_sample, name='lg_p_z')
+	lg_q_z_given_x = dist_z_given_x.log_prob(self.z_sample, name='lg_q_z_given_x')
+
+	return lg_p_x_given_z, lg_p_z, lg_q_z_given_x

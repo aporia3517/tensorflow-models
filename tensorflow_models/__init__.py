@@ -37,16 +37,28 @@ import tensorflow_models.contexts
 import tensorflow_models.layers
 
 class GraphKeys(object):
-	TRAIN_INPUTS = 'train_inputs'
-	TEST_INPUTS = 'test_inputs'
-	VALIDATION_INPUTS = 'validation_inputs'
-	TRAIN_OUTPUTS = 'train_outputs'
-	TEST_OUTPUTS = 'test_outputs'
-	TEST_OUTPUTS = 'validation_outputs'
+	INPUTS = 'inputs'
+	PRIOR = 'prior'
+	PLACEHOLDERS = 'placeholders'
 
 # Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
 def unflattened_batchshape(settings):
-	return (settings['batch_size'],) + tf_data.sample_shape(settings['dataset'])
+	return [settings['batch_size']] + list(tf_data.sample_shape(settings['dataset']))
+
+def flattened_shape(settings):
+	return np.prod(tf_data.sample_shape(settings['dataset']))
+
+def flattened_batchshape(settings):
+	return [settings['batch_size'], flattened_shape(settings)]
+
+def batchshape(settings):
+	if 'flatten' in settings['transformations']:
+		return flattened_batchshape(settings)
+	else:
+		return unflattened_batchshape(settings)
+
+def safe_log(x, **kwargs):
+	return tf.log(x + 1e-8, **kwargs)
 
 def count_batches(settings, subset=None):
 	if not subset is None:
@@ -73,14 +85,14 @@ def create(settings):
 	with host():
 		inputs(settings)
 
-	#with device(settings):
-	#	#model(settings)
+	with device(settings):
+		model(settings)
 	#	#losses(settings)
 	#	#optimizers(settings)
 
 # TODO: Would it be better to expand the settings dictionary when it is called and have named arguments?
 def inputs(settings):
-	with tf.name_scope('train'):
+	with tf.name_scope('inputs/train'):
 		train_samples = tf_data.inputs(
 			name=settings['dataset'],
 			subset=tf_data.Subset.TRAIN,
@@ -89,13 +101,10 @@ def inputs(settings):
 			num_threads=settings['num_threads'],
 			transformations=settings['transformations'])
 
-	if settings['labels']:
-		tf.add_to_collection(tf_models.GraphKeys.TRAIN_INPUTS, train_samples[0])
-		tf.add_to_collection(tf_models.GraphKeys.TRAIN_INPUTS, train_samples[1])
-	else:
-		tf.add_to_collection(tf_models.GraphKeys.TRAIN_INPUTS, train_samples)
+	for x in tf_data.utils.list.wrap(train_samples):
+		tf.add_to_collection(GraphKeys.INPUTS, x)
 
-	with tf.name_scope('train'):
+	with tf.name_scope('inputs/test'):
 		test_samples = tf_data.inputs(
 			name=settings['dataset'],
 			subset=tf_data.Subset.TEST,
@@ -104,13 +113,38 @@ def inputs(settings):
 			num_threads=settings['num_threads'],
 			transformations=settings['transformations'])
 
-	if settings['labels']:
-		tf.add_to_collection(tf_models.GraphKeys.TEST_INPUTS, test_samples[0])
-		tf.add_to_collection(tf_models.GraphKeys.TEST_INPUTS, test_samples[1])
-	else:
-		tf.add_to_collection(tf_models.GraphKeys.TEST_INPUTS, test_samples)
+	for x in tf_data.utils.list.wrap(test_samples):
+		tf.add_to_collection(GraphKeys.INPUTS, x)
 
 	return train_samples, test_samples
+
+# *** CONTINUE WORKING FROM HERE 5/4/2017 => Working on create training and test probabilities and encoder/decoder ***
+def model(settings):
+	#print('Loading: tensorflow_models.models.' + self._settings['model'])
+	model = importlib.import_module('tensorflow_models.models.' + self._settings['model'])
+	
+	with tf.variable_scope('model'):
+		# Create and store an operation to sample from the prior
+		if 'create_prior' in dir('model'):
+			with tf.name_scope('prior'):
+				tf.add_to_collection(GraphKeys.PRIOR, model.create_prior(settings))
+
+		with tf.name_scope('placeholders'):
+			placeholders = model.create_placeholders(settings)
+			for p in placeholders:
+				tf.add_to_collection(GraphKeys.PLACEHOLDERS, p)
+
+		with tf.name_scope('train'):
+			probs = model.create_probs(settings, tf_models.samples())
+
+def losses(settings):
+	pass
+
+def optimizers(settings):
+	pass
+
+def standard_normal(shape):
+	return tf.contrib.distributions.MultivariateNormalDiag(tf.zeros(shape), tf.ones(shape))
 
 # Load a model
 class Model(object):
