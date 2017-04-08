@@ -29,7 +29,6 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 import tensorflow_models as tf_models
-from tensorflow_models import Model
 
 # Architecture stuff
 #encoder_sizes = [256, 256] # self.n_z
@@ -41,15 +40,12 @@ from tensorflow_models import Model
 
 def create_placeholders(settings):
 	x = tf.placeholder(tf.float32, shape=tf_models.batchshape(settings), name='samples')
-	z = tf.placeholder(tf.float32, shape=latentshape(settings), name='codes')
+	z = tf.placeholder(tf.float32, shape=tf_models.latentshape(settings), name='codes')
 	return x, z
 
 def create_prior(settings):
-	dist_prior = tf_models.standard_normal(latentshape(settings))
+	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
 	return tf.identity(dist_prior.sample(), name='p_z/sample')
-
-def latentshape(settings):
-	return [settings['batch_size'], settings['latent_dimension']]
 
 # Encoder: q(z | x)
 # Returns the parameters for the normal distribution on z given x
@@ -83,7 +79,7 @@ def create_decoder(settings, reuse=True):
 	return decoder
 
 def create_probs(settings, inputs, reuse=False):
-	dist_prior = tf_models.standard_normal(latentshape(settings))
+	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
 
 	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
 	with tf.variable_scope('encoder', reuse=reuse):
@@ -91,7 +87,7 @@ def create_probs(settings, inputs, reuse=False):
 	dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z)
 
 	# Draw one sample z from Gaussian distribution
-	eps = tf.random_normal(latentshape(settings), 0, 1, dtype=tf.float32)
+	eps = tf.random_normal(tf_models.latentshape(settings), 0, 1, dtype=tf.float32)
 	z_sample = tf.add(mean_z, tf.multiply(diag_stdev_z, eps))
 
 	# Use generator to determine mean of Bernoulli distribution of reconstructed input

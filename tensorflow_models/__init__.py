@@ -203,67 +203,22 @@ def losses(settings):
 def optimizers(settings):
 	pass
 
+def latentshape(settings):
+	return [settings['batch_size'], settings['latent_dimension']]
+
 def standard_normal(shape, name='MultivariateNormalDiag'):
 	return tf.contrib.distributions.MultivariateNormalDiag(tf.zeros(shape), tf.ones(shape), name=name)
 
-# Load a model
-class Model(object):
-	def __init__(self, settings, train_samples, test_samples, step=None):
-		# Save arguments for later
-		self._settings = settings
-		self._train_samples = train_samples
-		self._test_samples = test_samples
-		self._step = step
+def standard_uniform(shape, name='Uniform'):
+	return tf.contrib.distributions.Uniform(name=name)
 
-		# Create the operations to evaluate model and calculate loss
-		self._create_model()
+def gan_uniform(shape, name='Uniform'):
+	return tf.contrib.distributions.Uniform(a=-1., b=1., name=name)
 
-		self.z = self._model_train.z_placeholder
-		self.x = self._model_train.x_placeholder
-
-		# NOTE: GAN models etc. won't have an encoder
-		try:
-			self._model_train.encoder
-		except AttributeError:
-			self.encoder = None
-		else:
-			self.encoder = self._model_train.encoder
-		
-		self.decoder = self._model_train.decoder
-
-		# Create the loss operations
-		self._create_losses()
-
-		# Create the optimizer
-		self._create_optimizer()
-
-	def _create_model(self):
-		#print('Loading: tensorflow_models.models.' + self._settings['model'])
-		model_lib = importlib.import_module('tensorflow_models.models.' + self._settings['model'])
-		Model = model_lib.Model
-
-		with gpu_device(self._settings):
-			with tf.variable_scope(self._settings['model']):
-				self._model_train = Model(self._train_samples, self._settings)
-				tf.get_variable_scope().reuse_variables()
-				self._model_test = Model(self._test_samples, self._settings)
-
-	def _create_losses(self):
-		loss_lib = importlib.import_module('tensorflow_models.losses.' + self._settings['loss'])
-
-		# Make this agnostic to the inference method!
-		with gpu_device(self._settings):
-			with tf.variable_scope(self._settings['model']):
-				# Add to the Graph the loss calculation.
-				self.loss_ops = loss_lib.make(self._model_train.inference(), self._model_test.inference())
-
-	def _create_optimizer(self):
-		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
-
-		with gpu_device(self._settings):
-			with tf.variable_scope(self._settings['model']):
-				# Add to the Graph operations that train the model.
-				self.train_ops = inference_lib.make(self._settings, self.loss_ops, self._step)
-
-	def sample_prior(self):
-		return self._model_train.sample_prior()
+#def _create_optimizer(self):
+#	inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
+#
+#	with gpu_device(self._settings):
+#		with tf.variable_scope(self._settings['model']):
+#			# Add to the Graph operations that train the model.
+#			self.train_ops = inference_lib.make(self._settings, self.loss_ops, self._step)

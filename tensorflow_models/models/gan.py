@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -29,56 +29,43 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 import tensorflow_models as tf_models
-from tensorflow_models import Model
 
-# TODO: VAE takes settings to get batchsize and size of input
-class Model(Model):
-	def __init__(self, inputs, settings):
-		# Dimensions of random variables
-		# TODO: Get variables from settings
-		# TODO: Take an architecture variable
-		self.batch_size = settings['batch_size']
-		self.n_x = 784
-		self.n_z = 100
+def create_placeholders(settings):
+	#x = tf.placeholder(tf.float32, shape=tf_models.batchshape(settings), name='samples')
+	z = tf.placeholder(tf.float32, shape=tf_models.latentshape(settings), name='codes')
+	return z
 
-		# Save input node
-		self.inputs = inputs
+def create_prior(settings):
+	dist_prior = tf_models.gan_uniform()
+	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), name='p_z/sample')
 
-		# Architecture parameters
-		self.generator_sizes = [128, self.n_x]
-		self.discriminator_sizes = [128, 1]
+def create_decoder(settings, reuse=True):
+	z_placeholder = tf_models.codes_placeholder()
+	assert(not z_placeholder is None)
 
-		self.x_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_x))
-		self.z_placeholder = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_z))
+	with tf.variable_scope('generator', reuse=reuse):
+		decoder = tf.identity(generator_network(settings, z_placeholder), name='p_x/sample')
+	return decoder
 
-		# Call function that creates model and network
-		self._lg_probs()
+def generator_network(settings, code):
+	return tf_models.layers.mlp(code, settings['generator_sizes'] + tf_models.flattened_shape(settings), final_activation_fn=tf.nn.sigmoid)
 
-	def _generator_network(self, code):
-		return tf_models.layers.mlp(code, self.generator_sizes, final_activation_fn=tf.nn.sigmoid)
+def discriminator_network(settings, inputs):
+	return tf_models.layers.mlp(inputs, settings['discriminator_sizes'] + [1], final_activation_fn=tf.nn.sigmoid)
 
-	def _discriminator_network(self, inputs):
-		return tf_models.layers.mlp(inputs, self.discriminator_sizes, final_activation_fn=tf.nn.sigmoid)
+def create_probs(settings, inputs, reuse=False):
+		eps = tf.random_uniform(tf_models.latentshape(settings), minval=-1., maxval=1., dtype=tf.float32)
 
-	def _lg_probs(self):
-		eps = tf.random_uniform((self.batch_size, self.n_z), minval=-1., maxval=1., dtype=tf.float32)
+		with tf.variable_scope('generator', reuse=reuse):
+			fake = generator_network(settings, eps)
 
-		with tf.variable_scope('generator'):
-			fake = self._generator_network(eps)
+		with tf.variable_scope('discriminator', reuse=reuse):
+			p_data = discriminator_network(settings, inputs)
 			tf.get_variable_scope().reuse_variables()
-			self.decoder = self._generator_network(self.z_placeholder)
+			p_fake = discriminator_network(settings, fake)
 
-		with tf.variable_scope('discriminator'):
-			p_data = self._discriminator_network(self.inputs)
-			tf.get_variable_scope().reuse_variables()
-			p_fake = self._discriminator_network(fake)
+		ll_data = tf.identity(tf.reduce_sum(tf_models.safe_log(p_data), 1), name='p_x/log_prob_real')
+		ll_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(p_fake), 1), name='p_x/log_prob_fake')
+		ll_one_minus_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(1. - p_fake), 1), name='p_x/log_one_minus_prob_fake')
 
-		self.ll_data = tf.reduce_sum(tf.log(p_data), 1)
-		self.ll_fake = tf.reduce_sum(tf.log(p_fake), 1)
-		self.ll_one_minus_fake = tf.reduce_sum(tf.log(1. - p_fake), 1)
-
-	def inference(self):
-		return {'ll_data': self.ll_data, 'll_fake': self.ll_fake, 'll_one_minus_fake': self.ll_one_minus_fake}
-
-	def sample_prior(self):
-		return np.random.uniform(low=-1., high=1., size=[self.batch_size, self.n_z])
+		return ll_data, ll_fake, ll_one_minus_fake
