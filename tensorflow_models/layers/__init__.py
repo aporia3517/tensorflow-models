@@ -39,18 +39,18 @@ def mlp(inputs, sizes, scope='layer', activation_fn=tf.nn.relu, final_activation
 		layer = slim.stack(inputs, slim.fully_connected, sizes[:-1], scope=scope, activation_fn=activation_fn)
 		return slim.fully_connected(layer, sizes[-1], scope=scope, activation_fn=final_activation_fn)
 
-def mlp2(input1, input2, sizes, scope='layer', activation_fn=tf.nn.relu, final_activation_fn=None):
-	# Define a layer that takes both inputs
-	# TODO: Option to apply batch normalization etc. to this
-	with tf.variable_scope(scope):
-		inputs1_shape = input1.get_shape()
-		inputs2_shape = input2.get_shape()
-		weights_1 = slim.variable(name='weights_1', shape=(inputs1_shape[1], sizes[0]), dtype=tf.float32, initializer=initializers.xavier_initializer())
-		weights_2 = slim.variable(name='weights_2', shape=(inputs2_shape[1], sizes[0]), dtype=tf.float32, initializer=initializers.xavier_initializer())
-		biases = slim.variable(name='biases_both', shape=sizes[0], dtype=tf.float32, initializer=init_ops.zeros_initializer())
-		layer = activation_fn(tf.add(tf.add(tf.matmul(input1, weights_1), tf.matmul(input2, weights_2)), biases))
-
-	return mlp(layer, sizes[1:], scope=scope, activation_fn=activation_fn, final_activation_fn=final_activation_fn)
+#def mlp2(input1, input2, sizes, scope='layer', activation_fn=tf.nn.relu, final_activation_fn=None):
+#	# Define a layer that takes both inputs
+#	# TODO: Option to apply batch normalization etc. to this
+#	with tf.variable_scope(scope):
+#		inputs1_shape = input1.get_shape()
+#		inputs2_shape = input2.get_shape()
+#		weights_1 = slim.variable(name='weights_1', shape=(inputs1_shape[1], sizes[0]), dtype=tf.float32, initializer=initializers.xavier_initializer())
+#		weights_2 = slim.variable(name='weights_2', shape=(inputs2_shape[1], sizes[0]), dtype=tf.float32, initializer=initializers.xavier_initializer())
+#		biases = slim.variable(name='biases_both', shape=sizes[0], dtype=tf.float32, initializer=init_ops.zeros_initializer())
+#		layer = activation_fn(tf.add(tf.add(tf.matmul(input1, weights_1), tf.matmul(input2, weights_2)), biases))
+#
+#	return mlp(layer, sizes[1:], scope=scope, activation_fn=activation_fn, final_activation_fn=final_activation_fn)
 
 # Define a network from inputs to mean and standard deviation parameters for a diagonal Gaussian distribution
 # NOTE: This is the basic architecture for the encoder network in a VAE

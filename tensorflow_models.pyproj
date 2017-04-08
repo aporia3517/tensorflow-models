@@ -26,10 +26,8 @@
     <Compile Include="inference\__init__.py" />
     <Compile Include="initializations.py" />
     <Compile Include="layers\__init__.py" />
-    <Compile Include="losses\analytic_kl.py" />
     <Compile Include="losses\avb_elbo.py" />
     <Compile Include="losses\elbo.py" />
-    <Compile Include="losses\elbo_aux.py" />
     <Compile Include="losses\gan.py" />
     <Compile Include="losses\__init__.py" />
     <Compile Include="models\avb_vae.py" />

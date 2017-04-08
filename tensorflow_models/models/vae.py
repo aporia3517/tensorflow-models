@@ -30,14 +30,6 @@ import tensorflow.contrib.slim as slim
 
 import tensorflow_models as tf_models
 
-# Architecture stuff
-#encoder_sizes = [256, 256] # self.n_z
-#decoder_sizes = [256, 256] # self.n_x
-
-#def create(settings):
-#	# For the moment, we require a flattened input
-#	assert('flatten' in settings['transformations'])
-
 def create_placeholders(settings):
 	x = tf.placeholder(tf.float32, shape=tf_models.batchshape(settings), name='samples')
 	z = tf.placeholder(tf.float32, shape=tf_models.latentshape(settings), name='codes')
