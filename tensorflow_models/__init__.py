@@ -40,16 +40,19 @@ class GraphKeys(object):
 	INPUTS = 'inputs'
 	PRIOR = 'prior'
 	PLACEHOLDERS = 'placeholders'
+	OUTPUTS = 'outputs'
+	ENCODERS = 'encoders'
+	DECODERS = 'decoders'
 
 # Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
 def unflattened_batchshape(settings):
 	return [settings['batch_size']] + list(tf_data.sample_shape(settings['dataset']))
 
 def flattened_shape(settings):
-	return np.prod(tf_data.sample_shape(settings['dataset']))
+	return [int(np.prod(tf_data.sample_shape(settings['dataset'])))]
 
 def flattened_batchshape(settings):
-	return [settings['batch_size'], flattened_shape(settings)]
+	return [settings['batch_size']] + flattened_shape(settings)
 
 def batchshape(settings):
 	if 'flatten' in settings['transformations']:
@@ -118,14 +121,40 @@ def inputs(settings):
 
 	return train_samples, test_samples
 
-# *** CONTINUE WORKING FROM HERE 5/4/2017 => Working on create training and test probabilities and encoder/decoder ***
+def samples(subset=tf_data.Subset.TRAIN):
+	inputs = tf.get_collection(GraphKeys.INPUTS)
+	for op in inputs:
+		if tf_data.subset_suffix[subset] + '/samples' in op.name:
+			return op
+	return None
+
+def labels(subset=tf_data.Subset.TRAIN):
+	inputs = tf.get_collection(GraphKeys.INPUTS)
+	for op in inputs:
+		if tf_data.subset_suffix[subset] + '/labels' in op.name:
+			return op
+	return None
+
+def samples_placeholder():
+	placeholders = tf.get_collection(GraphKeys.PLACEHOLDERS)
+	for p in placeholders:
+		if 'samples' in p.name:
+			return p
+	return None
+
+def codes_placeholder():
+	placeholders = tf.get_collection(GraphKeys.PLACEHOLDERS)
+	for p in placeholders:
+		if 'codes' in p.name:
+			return p
+	return None
+
 def model(settings):
-	#print('Loading: tensorflow_models.models.' + self._settings['model'])
-	model = importlib.import_module('tensorflow_models.models.' + self._settings['model'])
+	model = importlib.import_module('tensorflow_models.models.' + settings['model'])
 	
 	with tf.variable_scope('model'):
 		# Create and store an operation to sample from the prior
-		if 'create_prior' in dir('model'):
+		if 'create_prior' in dir(model):
 			with tf.name_scope('prior'):
 				tf.add_to_collection(GraphKeys.PRIOR, model.create_prior(settings))
 
@@ -135,7 +164,17 @@ def model(settings):
 				tf.add_to_collection(GraphKeys.PLACEHOLDERS, p)
 
 		with tf.name_scope('train'):
-			probs = model.create_probs(settings, tf_models.samples())
+			probs = model.create_probs(settings, samples(tf_data.Subset.TRAIN))
+			for p in probs:
+				tf.add_to_collection(GraphKeys.OUTPUTS, p)
+
+		with tf.name_scope('test'):
+			probs = model.create_probs(settings, samples(tf_data.Subset.TEST), reuse=True)
+			for p in probs:
+				tf.add_to_collection(GraphKeys.OUTPUTS, p)
+
+		tf.add_to_collection(GraphKeys.ENCODERS, model.create_encoder(settings, reuse=True))
+		tf.add_to_collection(GraphKeys.DECODERS, model.create_decoder(settings, reuse=True))
 
 def losses(settings):
 	pass
@@ -143,8 +182,8 @@ def losses(settings):
 def optimizers(settings):
 	pass
 
-def standard_normal(shape):
-	return tf.contrib.distributions.MultivariateNormalDiag(tf.zeros(shape), tf.ones(shape))
+def standard_normal(shape, name='MultivariateNormalDiag'):
+	return tf.contrib.distributions.MultivariateNormalDiag(tf.zeros(shape), tf.ones(shape), name=name)
 
 # Load a model
 class Model(object):
