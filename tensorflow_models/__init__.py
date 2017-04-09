@@ -206,6 +206,9 @@ def optimizers(settings):
 def latentshape(settings):
 	return [settings['batch_size'], settings['latent_dimension']]
 
+def noiseshape(settings):
+	return [settings['batch_size'], settings['noise_dimension']]
+
 def standard_normal(shape, name='MultivariateNormalDiag'):
 	return tf.contrib.distributions.MultivariateNormalDiag(tf.zeros(shape), tf.ones(shape), name=name)
 

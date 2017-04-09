@@ -65,10 +65,9 @@ def create_encoder(settings, reuse=True):
 	x_placeholder = tf_models.samples_placeholder()
 	assert(not x_placeholder is None)
 
+	noise = tf.random_normal(tf_models.noiseshape(settings), 0, 1, dtype=tf.float32)
 	with tf.variable_scope('encoder', reuse=reuse):
-		mean_z, diag_stdev_z = encoder_network(settings, x_placeholder)
-		dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z)
-		encoder = tf.identity(dist_z_given_x.sample(name='sample'), name='q_z_given_x/sample')
+		encoder = tf.identity(encoder_network(settings, x_placeholder, noise), name='q_z_given_x_eps/sample')
 	return encoder
 
 def create_decoder(settings, reuse=True):
@@ -81,37 +80,29 @@ def create_decoder(settings, reuse=True):
 		decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
 	return decoder
 
-# *** CONTINUE FROM HERE 8/4/2017 ***
 def create_probs(settings, inputs, reuse=False):
 	# The noise is distributed i.i.d. N(0, 1)
-	self.noise = tf.random_normal((self.batch_size, self.n_eps), 0, 1, dtype=tf.float32)
+	noise = tf.random_normal(tf_models.noiseshape(settings), 0, 1, dtype=tf.float32)
 
 	# Use black-box inference network to sample z, given inputs and noise
-	with tf.variable_scope('encoder'):
-		self.z_sample = self._enc_z_given_x_eps(self.inputs, self.noise)
-		tf.get_variable_scope().reuse_variables()
-		self.encoder = self._enc_z_given_x_eps(self.x_placeholder, self.noise)
+	with tf.variable_scope('encoder', reuse=reuse):
+		z_sample = encoder_network(settings, inputs, noise)
 
 	# The prior on z is also i.i.d. N(0, 1)
-	#dist_z = tf.contrib.distributions.MultivariateNormalDiag(tf.zeros([self.batch_size, self.n_z]), tf.ones([self.batch_size, self.n_z]))
-	self.z_prior = tf.random_normal((self.batch_size, self.n_z), 0, 1, dtype=tf.float32)
+	z_prior = tf.random_normal(tf_models.latentshape(settings), 0, 1, dtype=tf.float32)
 
 	# Use generator to determine distribution of reconstructed input
-	with tf.variable_scope('decoder'):
-		logits_x = self._dec_x_given_z(self.z_sample)
-		tf.get_variable_scope().reuse_variables()
-		logits_x_placeholder = self._dec_x_given_z(self.z_placeholder)
-
+	with tf.variable_scope('decoder', reuse=reuse):
+		logits_x = decoder_network(z_sample)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 
-	dist_x_given_z_placeholder = tf.contrib.distributions.Bernoulli(logits=logits_x_placeholder)
-	self.decoder = dist_x_given_z_placeholder.sample()
-
 	# Log likelihood of reconstructed inputs
-	self.lg_p_x_given_z = tf.reduce_sum(dist_x_given_z.log_prob(self.inputs), 1)
+	lg_p_x_given_z = tf.identity(tf.reduce_sum(dist_x_given_z.log_prob(inputs), 1), name='p_x_given_z/log_prob')
 
 	# Discriminator T(x, z)
-	with tf.variable_scope('discriminator'):
-		self.adversary = self._discriminator(self.inputs, self.z_sample)
+	with tf.variable_scope('discriminator', reuse=reuse):
+		discriminator = tf.identity(discriminator_network(inputs, z_sample), name='discriminator')
 		tf.get_variable_scope().reuse_variables()
-		self.prior_adversary = self._discriminator(self.inputs, self.z_prior)
+		prior_discriminator = tf.identity(discriminator_network(inputs, z_prior), name='prior_discriminator')
+
+	return lg_p_x_given_z, discriminator, prior_discriminator
