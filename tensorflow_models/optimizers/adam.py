@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -26,13 +26,13 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-def training(loss, learning_rate=0.001, var_list=None, step=None, clip_grads=False):
+def training(loss, learning_rate=0.001, var_list=None, step=None, clip_grads=False, name='Adam'):
 	# Add a scalar summary for the snapshot loss.
 	# TODO: Adding summaries!
 	#tf.summary.scalar('loss', loss)
 
 	# Create the gradient descent optimizer with the given learning rate.
-	optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+	optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name=name)
 
 	# Use the optimizer to apply the gradients that minimize the loss
 	# TODO: Better way to code this??

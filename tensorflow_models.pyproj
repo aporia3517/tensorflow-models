@@ -42,6 +42,10 @@
     <Compile Include="settings.py" />
     <Compile Include="snapshot.py" />
     <Compile Include="timer.py" />
+    <Compile Include="trainers\avb.py" />
+    <Compile Include="trainers\gan.py" />
+    <Compile Include="trainers\vae.py" />
+    <Compile Include="trainers\__init__.py" />
     <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>
@@ -51,6 +55,7 @@
     <Folder Include="losses" />
     <Folder Include="models" />
     <Folder Include="optimizers" />
+    <Folder Include="trainers\" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|VisualStudio|TensorFlow" />

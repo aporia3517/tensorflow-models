@@ -45,7 +45,7 @@ class GraphKeys(object):
 	ENCODERS = 'encoders'
 	DECODERS = 'decoders'
 	LOSSES = 'losses'
-	OPTIMIZERS = 'optimizers'
+	INFERENCE = 'inference'
 
 # Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
 def unflattened_batchshape(settings):
@@ -89,15 +89,15 @@ def device(settings):
 
 def create(settings):
 	with host():
-		inputs(settings)
+		input_ops(settings)
 
 	with device(settings):
-		model(settings)
-		losses(settings)
-		optimizers(settings)
+		model_ops(settings)
+		loss_ops(settings)
+		inference_ops(settings)
 
 # TODO: Would it be better to expand the settings dictionary when it is called and have named arguments?
-def inputs(settings):
+def input_ops(settings):
 	with tf.name_scope('inputs/train'):
 		train_samples = tf_data.inputs(
 			name=settings['dataset'],
@@ -154,6 +154,13 @@ def outputs(name):
 			return op
 	raise ValueError('No output operation with substring "{}" exists'.format(name))
 
+def loss(name):
+	ops = tf.get_collection(GraphKeys.LOSSES)
+	for op in ops:
+		if name in op.name:
+			return op
+	raise ValueError('No loss operation with substring "{}" exists'.format(name))
+
 def samples_placeholder():
 	placeholders = tf.get_collection(GraphKeys.PLACEHOLDERS)
 	for p in placeholders:
@@ -168,7 +175,7 @@ def codes_placeholder():
 			return p
 	return None
 
-def model(settings):
+def model_ops(settings):
 	model = importlib.import_module('tensorflow_models.models.' + settings['model'])
 	
 	with tf.variable_scope('model'):
@@ -195,16 +202,19 @@ def model(settings):
 		tf.add_to_collection(GraphKeys.ENCODERS, model.create_encoder(settings, reuse=True))
 		tf.add_to_collection(GraphKeys.DECODERS, model.create_decoder(settings, reuse=True))
 
-def losses(settings):
+def loss_ops(settings):
 	loss_lib = importlib.import_module('tensorflow_models.losses.' + settings['loss'])
 	with tf.name_scope('losses'):
 		ls = wrap(loss_lib.create('train')) + wrap(loss_lib.create('test'))
 		for l in ls:
 			tf.add_to_collection(GraphKeys.LOSSES, l)
 
-def optimizers(settings):
-	pass
-	
+def inference_ops(settings):
+	inference_lib = importlib.import_module('tensorflow_models.inference.' + settings['inference'])
+	with tf.name_scope('inference'):
+		ops = wrap(inference_lib.create(settings))
+		for op in ops:
+			tf.add_to_collection(GraphKeys.INFERENCE, op)
 
 def latentshape(settings):
 	return [settings['batch_size'], settings['latent_dimension']]
@@ -220,11 +230,3 @@ def standard_uniform(shape, name='Uniform'):
 
 def gan_uniform(shape, name='Uniform'):
 	return tf.contrib.distributions.Uniform(a=-1., b=1., name=name)
-
-#def _create_optimizer(self):
-#	inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
-#
-#	with gpu_device(self._settings):
-#		with tf.variable_scope(self._settings['model']):
-#			# Add to the Graph operations that train the model.
-#			self.train_ops = inference_lib.make(self._settings, self.loss_ops, self._step)

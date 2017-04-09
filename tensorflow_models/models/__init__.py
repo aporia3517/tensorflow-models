@@ -1,4 +1,4 @@
-# MIT License
+﻿# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -23,8 +23,3 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-# Abstract base class for model
-class Model(object):
-	def inference(self):
-		raise NotImplementedError('Class has not implemented method inference()')
