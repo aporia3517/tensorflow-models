@@ -184,10 +184,11 @@ def model_ops(settings):
 			with tf.name_scope('prior'):
 				tf.add_to_collection(GraphKeys.PRIOR, model.create_prior(settings))
 
-		with tf.name_scope('placeholders'):
-			placeholders = model.create_placeholders(settings)
-			for p in wrap(placeholders):
-				tf.add_to_collection(GraphKeys.PLACEHOLDERS, p)
+		if 'create_placeholders' in dir(model):
+			with tf.name_scope('placeholders'):
+				placeholders = model.create_placeholders(settings)
+				for p in wrap(placeholders):
+					tf.add_to_collection(GraphKeys.PLACEHOLDERS, p)
 
 		with tf.name_scope('train'):
 			probs = model.create_probs(settings, samples(tf_data.Subset.TRAIN))
@@ -199,8 +200,10 @@ def model_ops(settings):
 			for p in wrap(probs):
 				tf.add_to_collection(GraphKeys.OUTPUTS, p)
 
-		tf.add_to_collection(GraphKeys.ENCODERS, model.create_encoder(settings, reuse=True))
-		tf.add_to_collection(GraphKeys.DECODERS, model.create_decoder(settings, reuse=True))
+		if 'create_encoder' in dir(model):
+			tf.add_to_collection(GraphKeys.ENCODERS, model.create_encoder(settings, reuse=True))
+		if 'create_decoder' in dir(model):
+			tf.add_to_collection(GraphKeys.DECODERS, model.create_decoder(settings, reuse=True))
 
 def loss_ops(settings):
 	loss_lib = importlib.import_module('tensorflow_models.losses.' + settings['loss'])
@@ -225,8 +228,8 @@ def noiseshape(settings):
 def standard_normal(shape, name='MultivariateNormalDiag'):
 	return tf.contrib.distributions.MultivariateNormalDiag(tf.zeros(shape), tf.ones(shape), name=name)
 
-def standard_uniform(shape, name='Uniform'):
+def standard_uniform(name='Uniform'):
 	return tf.contrib.distributions.Uniform(name=name)
 
-def gan_uniform(shape, name='Uniform'):
+def gan_uniform(name='Uniform'):
 	return tf.contrib.distributions.Uniform(a=-1., b=1., name=name)

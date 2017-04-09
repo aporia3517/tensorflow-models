@@ -90,10 +90,10 @@ def create_probs(settings, inputs, reuse=False):
 
 	# The prior on z is also i.i.d. N(0, 1)
 	z_prior = tf.random_normal(tf_models.latentshape(settings), 0, 1, dtype=tf.float32)
-
+		
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
-		logits_x = decoder_network(z_sample)
+		logits_x = decoder_network(settings, z_sample)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 
 	# Log likelihood of reconstructed inputs
@@ -101,8 +101,8 @@ def create_probs(settings, inputs, reuse=False):
 
 	# Discriminator T(x, z)
 	with tf.variable_scope('discriminator', reuse=reuse):
-		discriminator = tf.identity(discriminator_network(inputs, z_sample), name='discriminator')
+		discriminator = tf.identity(discriminator_network(settings, inputs, z_sample), name='generator')
 		tf.get_variable_scope().reuse_variables()
-		prior_discriminator = tf.identity(discriminator_network(inputs, z_prior), name='prior_discriminator')
+		prior_discriminator = tf.identity(discriminator_network(settings, inputs, z_prior), name='prior')
 
 	return lg_p_x_given_z, discriminator, prior_discriminator

@@ -32,13 +32,13 @@ import tensorflow_models as tf_models
 # Create the training operations
 def create(settings):
 	optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + settings['optimizer'])
-	train_generator_loss = tf_models.get_loss('train/generator')
+	train_generator_loss = tf_models.loss('train/generator')
 	train_discriminator_loss = tf_models.loss('train/discriminator')
 	step = tf_models.global_step()
 
 	# Divide variables into those we optimize for the ELBO and those for the adversarial training
 	generator_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/generator')]
-	adversary_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/discriminator')]
+	discriminator_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/discriminator')]
 	#other_vars = [var for var in tf.trainable_variables() if not var.name.startswith(settings['model'] + '/generator') and not var.name.startswith(settings['model'] + '/discriminator')]
 
 	#print('generator variables')
@@ -48,7 +48,7 @@ def create(settings):
 	#print('other variables')
 
 	# Add to the Graph operations that train the model.
-	generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step)
-	discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars)
+	generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator')
+	discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator')
 
 	return generator_train_op, discriminator_train_op

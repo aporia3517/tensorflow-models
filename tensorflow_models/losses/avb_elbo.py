@@ -33,19 +33,19 @@ import tensorflow_models as tf_models
 # lg_p_x_given_z ~ batch_size x 784
 # adversary ~ ?
 # prior_adversary ~ ?
-def loss(lg_p_x_given_z, discriminator, prior_discriminator):	
+def loss(lg_p_x_given_z, discriminator, prior_discriminator, name):	
 	# Eq (3.9)
 	# NOTE: Take negative since we are minimizing
-	elbo_loss = -tf.reduce_mean(-adversary + lg_p_x_given_z)
+	elbo_loss = -tf.reduce_mean(-discriminator + lg_p_x_given_z)
 
 	# Eq (3.3)
-	discriminator_loss = -tf.reduce_mean(tf_models.safe_log(tf.nn.sigmoid(adversary)) + tf_models.safe_log(1. - tf.nn.sigmoid(prior_adversary)))
+	discriminator_loss = -tf.reduce_mean(tf_models.safe_log(tf.nn.sigmoid(discriminator)) + tf_models.safe_log(1. - tf.nn.sigmoid(prior_discriminator)))
 
 	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/discriminator')
 
 def create(name='train'):
 	lg_p_x_given_z = tf_models.outputs(name + '/p_x_given_z/log_prob')
-	discriminator = tf_models.outputs(name + '/discriminator')
-	prior_discriminator = tf_models.outputs(name + '/prior_discriminator')
+	discriminator = tf_models.outputs(name + '/discriminator/generator')
+	prior_discriminator = tf_models.outputs(name + '/discriminator/prior')
 
 	return loss(lg_p_x_given_z, discriminator, prior_discriminator, name=name)
