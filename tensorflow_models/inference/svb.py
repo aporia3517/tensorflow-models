@@ -31,7 +31,7 @@ import tensorflow_models as tf_models
 
 def create(settings):
 	optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + settings['optimizer'])
-	train_elbo_loss = tf_models.loss('train/elbo')
+	train_elbo_loss = tf_models.get_loss('train/elbo')
 	step = tf_models.global_step()
 
 	train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], step=step, name='elbo')

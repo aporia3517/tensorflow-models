@@ -33,8 +33,8 @@ import tensorflow_models as tf_models
 # Create the training operations
 def create(settings):
 	optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + settings['optimizer'])
-	train_elbo_loss = tf_models.loss('train/elbo_like')
-	train_discriminator_loss = tf_models.loss('train/discriminator')
+	train_elbo_loss = tf_models.get_loss('train/elbo_like')
+	train_discriminator_loss = tf_models.get_loss('train/discriminator')
 	step = tf_models.global_step()
 
 	# Divide variables into those we optimize for the ELBO and those for the adversarial training

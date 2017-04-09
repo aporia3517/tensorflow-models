@@ -82,153 +82,47 @@ class GraphContext(object):
 			self._device_context.__exit__(*args)
 		self._graph_context.__exit__(*args)
 
-# TODO: Make this inherit from ModelContext
 class SessionContext(object):
-	def __init__(self, settings, model):
-		#super(SessionContext, self).__init__()
-		self._settings = settings
-		self.train_batches, self.test_batches = tf_models.count_batches(self._settings)	
-		self._model = model
-		self.saver = tf.train.Saver()	
+	def __init__(self):
+		self.saver = tf.train.Saver()
+		tf.add_to_collection(tf.GraphKeys.SAVERS, self.saver)
 		self._init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+		self._coord = None
+
+		# Detect if there are queue runners and create necessary data structures if so
+		if not tf.get_collection(tf.GraphKeys.QUEUE_RUNNERS) is []:
+			self._coord = tf.train.Coordinator()
+			self._exception_context = self._coord.stop_on_exception()
+		else:
+			self._is_running = True
 
 	def __enter__(self):
 		# Start the Tensorflow session
 		self.sess = tf.Session()
 		self.sess.__enter__()
+		self.sess.run(self._init_op)
 
-		# Initialize training variables to scratch or resume from previous step
-		self._initialize()
+		if not self._coord is None:
+			self._threads = tf.train.start_queue_runners(sess=self.sess, coord=self._coord)
+			self._exception_context.__enter__()
 
 		return self
 
 	def __exit__(self, *args):
+		if not self._coord is None:
+			self._coord.request_stop()
+			self._coord.join(self._threads)
+			self._exception_context.__exit__(*args)
 		self.sess.__exit__(*args)
-		pass
-
-	def _initialize(self):
-		if self._settings['resume_from'] is None:
-			self.sess.run(self._init_op)
-			self.step = 0
-			inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
-			self.results = inference_lib.initialize_results()
-			self.prior_noise = self._model.sample_prior()
-		else:
-			# Check that checkpoint file exists
-			self.step = self._settings['resume_from']
-			snapshot_filepath = tf_models.utils.settings.filepath(self._settings) + '-' + str(self.step)
-			if not tf_models.utils.file.exists(snapshot_filepath + '.meta'):
-				raise IOError('Snapshot at step {} does not exist'.format(self.step))
-			self._saver.restore(self.sess, snapshot_filepath)
-			self.results, self.prior_noise = tf_models.utils.snapshot.load_results(snapshot_filepath)
-			print("Model restored from epoch {}".format(self._settings['resume_from']))
-
-# Handles running queue runners using coordinator object
-class CoordinatorContext(SessionContext):
-	def __init__(self, settings, model):
-		super(CoordinatorContext, self).__init__(settings, model)
-		self._settings = settings
-		
-		# Input enqueue threads
-		self._coord = tf.train.Coordinator()
-		self._exception_context = self._coord.stop_on_exception()
-		
-	def __enter__(self):
-		# Terminate threads on an exception
-		super(CoordinatorContext, self).__enter__()
-		self._threads = tf.train.start_queue_runners(sess=self.sess, coord=self._coord)
-		self._exception_context.__enter__()
-		return self
-
-	def __exit__(self, *args):
-		self._coord.request_stop()
-		self._coord.join(self._threads)
-		self._exception_context.__exit__(*args)
-		super(CoordinatorContext, self).__exit__(*args)
 
 	def running(self):
-		return not self._coord.should_stop()
+		if not self._coord is None:
+			return not self._coord.should_stop()
+		else:
+			return self._is_running
 
 	def stop(self):
-		self._coord.request_stop()
-
-class LearningContext(CoordinatorContext):
-	def __init__(self, settings, model, paths):
-		super(LearningContext, self).__init__(settings, model)
-		self._paths = paths
-		self._initialize_counters()
-
-	def __enter__(self):
-		super(LearningContext, self).__enter__()
-		self._set_learning_hooks()
-		self._set_initialize_hook()
-		self._set_step_hook()
-		self._set_after_step_hook()
-		self._initialize_hook(self)
-		self._save_snapshot()
-		return self
-
-	def __exit__(self, *args):
-		self._finished_hook()
-		super(LearningContext, self).__exit__(*args)
-
-	# Work out how many steps to do, and how many minibatches per step
-	def _initialize_counters(self):
-		if not self._settings['batches_per_step'] is None:
-			self._batches_per_step = self._settings['batches_per_step']
+		if not self._coord is None:
+			self._coord.request_stop()
 		else:
-			self._batches_per_step = self.train_batches
-
-		if not self._settings['count_steps'] is None:
-			self._count_steps = self._settings['count_steps']
-		elif not self._settings['count_epochs'] is None:
-			# self.batches_per_step => Batches per step
-			# self.train_batches => Batches per epoch
-			self._count_steps = self._settings['count_epochs'] * float(self.train_batches) / self._batches_per_step
-
-	# Called before learning is started
-	def _set_initialize_hook(self):
-		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
-		self._initialize_hook = inference_lib.initialize_hook
-
-	# Called every run()
-	def _set_step_hook(self):
-		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
-		self._step_hook = inference_lib.step_hook
-
-	def _before_step_hook(self):
-		pass
-
-	def _set_after_step_hook(self):
-		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
-		self._after_step_hook = inference_lib.after_step_hook
-
-	# Convert step number into epoch number
-	def epoch(self):
-		return self.step * float(self._batches_per_step) / self.train_batches
-
-	def running(self):
-		return self.step < self._count_steps and super(LearningContext, self).running()
-
-	def run(self):
-		self._before_step_hook()
-		self._step_hook(self)
-		self.step += 1
-		self._after_step_hook(self)
-		self._save_snapshot()
-
-	# Save snapshot of model parameters, results so far and the prior noise for plotting samples
-	def _save_snapshot(self):
-		if (not self._settings['steps_per_snapshot'] is None) and (self.step % self._settings['steps_per_snapshot'] == 0):
-			self.saver.save(self.sess, tf_models.settings.snapshots_filepath(self._settings, self._paths), global_step=self.step)
-			tf_models.snapshot.save_results(tf_models.settings.snapshots_filepath(self._settings, self._paths), self.step, self.results, self.prior_noise)
-			if self._settings['plot_samples']:
-				decoded_samples = self.sess.run(self._model.decoder, feed_dict={self._model.z: self.prior_noise})
-				tf_models.plot.sample_grid(tf_models.settings.plots_filepath(self._settings, self._paths) + '-samples-' + str(self.step), decoded_samples.reshape(tf_models.unflattened_batchshape(self._settings)))
-
-	def _set_learning_hooks(self):
-		inference_lib = importlib.import_module('tensorflow_models.inference.' + self._settings['inference'])
-		self.train, self.test = inference_lib.learning_hooks(self)
-
-	def _finished_hook(self):
-		print('Done training for {} epochs'.format(self.epoch()))
+			self._is_running = False

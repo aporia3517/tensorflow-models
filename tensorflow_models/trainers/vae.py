@@ -28,68 +28,64 @@ import os, sys
 import importlib
 
 import tensorflow as tf
-import numpy as np
+import tensorflow_models as tf_models
+from tensorflow_models.trainers import BaseTrainer
 
-import tensorflow_datasets as tf_data
+#import numpy as np
 
-def learning_hooks(session):
-	sess = session.sess
-	model = session._model
-	test_batches = session.test_batches
+class VaeTrainer(BaseTrainer):
+	def finalize_hook(self):
+		print('Done training for {} epochs'.format(self.epoch()))
 
-	train_op = model.train_ops['train_loss']
-	train_loss_op = model.loss_ops['train_loss']
-	test_loss_op = model.loss_ops['train_loss']
+	def learning_hooks(self):
+		train_op = tf_models.get_inference('elbo')
+		train_loss_op = tf_models.get_loss('train/elbo')
+		test_loss_op = tf_models.get_loss('test/elbo')
 	
-	def train(count_steps):
-		total_elbo = 0.
-		for idx in range(count_steps):
-			_, this_elbo = sess.run([train_op, train_loss_op])
-			total_elbo += this_elbo
-		return total_elbo / count_steps
+		def train(count_steps):
+			total_elbo = 0.
+			for idx in range(count_steps):
+				_, this_elbo = self.sess.run([train_op, train_loss_op])
+				total_elbo += this_elbo
+			return total_elbo / count_steps
 
-	def test():
-		total_loss = 0.
-		for idx in range(test_batches):
-			this_loss = sess.run(test_loss_op)
-			total_loss += this_loss
-		return total_loss / test_batches
+		def test():
+			total_loss = 0.
+			for idx in range(self.test_batches):
+				this_loss = self.sess.run(test_loss_op)
+				total_loss += this_loss
+			return total_loss / self.test_batches
 
-	return train, test
+		return train, test
 
-def initialize_hook(session):
-	# See where the test loss starts
-	if session._settings['resume_from'] is None:
-		# Do a test evaluation before any training happens
-		test_loss = session.test()
-		session.results['costs_test'] += [test_loss]
-	else:
-		test_loss = session.results['costs_test'][-1]
+	def initialize_hook(self):
+		# See where the test loss starts
+		if self._settings['resume_from'] is None:
+			# Do a test evaluation before any training happens
+			test_loss = self.test()
+			self.results['costs_test'] += [test_loss]
+		else:
+			test_loss = self.results['costs_test'][-1]
+		print('epoch {:.3f}, test loss = {:.2f}'.format(self.epoch(), test_loss))
 
-	print('epoch {:.3f}, test loss = {:.2f}'.format(session.epoch(), test_loss))
+	def step_hook(self):
+		with tf_models.timer.Timer() as train_timer:
+			train_loss = self.train(self._batches_per_step)
+		test_loss = self.test()
 
-def step_hook(session):
-	with tf_models.timer.Timer() as train_timer:
-		train_loss = session.train(session._batches_per_step)
-	test_loss = session.test()
+		self.results['times_train'] += [train_timer.interval]
+		self.results['costs_train'] += [train_loss]
+		self.results['costs_test'] += [test_loss]
 
-	session.results['times_train'] += [train_timer.interval]
-	session.results['costs_train'] += [train_loss]
-	session.results['costs_test'] += [test_loss]
+	def before_step_hook(self):
+		pass
 
-def after_step_hook(session):
-	train_time = session.results['times_train'][-1]
-	train_loss = session.results['costs_train'][-1]
-	test_loss = session.results['costs_test'][-1]
+	def after_step_hook(self):
+		train_time = self.results['times_train'][-1]
+		train_loss = self.results['costs_train'][-1]
+		test_loss = self.results['costs_test'][-1]
 
-	examples_per_sec = session._settings['batch_size'] * session._batches_per_step / train_time
-	sec_per_batch = train_time / session._batches_per_step
+		examples_per_sec = self._settings['batch_size'] * self._batches_per_step / train_time
+		sec_per_batch = train_time / self._batches_per_step
 
-	print('epoch {:.3f}, train loss = {:.2f}, test loss = {:.2f} ({:.1f} examples/sec)'.format(session.epoch(), train_loss, test_loss, examples_per_sec))
-
-def initialize_results():
-	results = {}
-	results['costs_train'] = []
-	results['times_train'] = []
-	results['costs_test'] = []
-	return results
+		print('epoch {:.3f}, train loss = {:.2f}, test loss = {:.2f} ({:.1f} examples/sec)'.format(self.epoch(), train_loss, test_loss, examples_per_sec))

@@ -139,7 +139,7 @@ def labels(subset=tf_data.Subset.TRAIN):
 	return None
 
 # Get trainable variables with a given substring
-def vars(name):
+def get_vars(name):
 	variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 	selected = []
 	for v in variables:
@@ -147,19 +147,47 @@ def vars(name):
 			selected.append(v)
 	return v
 
-def outputs(name):
+def get_prior():
+	ops = tf.get_collection(GraphKeys.PRIOR)
+	if not ops is []:
+		return ops[0]
+	else:
+		raise ValueError('No prior sampling operation exists')
+
+def get_decoder():
+	ops = tf.get_collection(GraphKeys.DECODERS)
+	if not ops is []:
+		return ops[0]
+	else:
+		raise ValueError('No decoder sampling operation exists')
+
+def get_encoder():
+	ops = tf.get_collection(GraphKeys.ENCODERS)
+	if not ops is []:
+		return ops[0]
+	else:
+		raise ValueError('No encoder sampling operation exists')
+
+def get_output(name):
 	ops = tf.get_collection(GraphKeys.OUTPUTS)
 	for op in ops:
 		if name in op.name:
 			return op
 	raise ValueError('No output operation with substring "{}" exists'.format(name))
 
-def loss(name):
+def get_loss(name):
 	ops = tf.get_collection(GraphKeys.LOSSES)
 	for op in ops:
 		if name in op.name:
 			return op
 	raise ValueError('No loss operation with substring "{}" exists'.format(name))
+
+def get_inference(name):
+	ops = tf.get_collection(GraphKeys.INFERENCE)
+	for op in ops:
+		if name in op.name:
+			return op
+	raise ValueError('No inference operation with substring "{}" exists'.format(name))
 
 def samples_placeholder():
 	placeholders = tf.get_collection(GraphKeys.PLACEHOLDERS)
