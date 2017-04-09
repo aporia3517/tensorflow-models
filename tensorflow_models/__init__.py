@@ -32,6 +32,7 @@ import tensorflow as tf
 import numpy as np
 
 import tensorflow_datasets as tf_data
+from tensorflow_datasets.utils.list import wrap
 import tensorflow_models.optimizers
 import tensorflow_models.contexts
 import tensorflow_models.layers
@@ -106,7 +107,7 @@ def inputs(settings):
 			num_threads=settings['num_threads'],
 			transformations=settings['transformations'])
 
-	for x in tf_data.utils.list.wrap(train_samples):
+	for x in wrap(train_samples):
 		tf.add_to_collection(GraphKeys.INPUTS, x)
 
 	with tf.name_scope('inputs/test'):
@@ -118,7 +119,7 @@ def inputs(settings):
 			num_threads=settings['num_threads'],
 			transformations=settings['transformations'])
 
-	for x in tf_data.utils.list.wrap(test_samples):
+	for x in wrap(test_samples):
 		tf.add_to_collection(GraphKeys.INPUTS, x)
 
 	return train_samples, test_samples
@@ -178,17 +179,17 @@ def model(settings):
 
 		with tf.name_scope('placeholders'):
 			placeholders = model.create_placeholders(settings)
-			for p in placeholders:
+			for p in wrap(placeholders):
 				tf.add_to_collection(GraphKeys.PLACEHOLDERS, p)
 
 		with tf.name_scope('train'):
 			probs = model.create_probs(settings, samples(tf_data.Subset.TRAIN))
-			for p in probs:
+			for p in wrap(probs):
 				tf.add_to_collection(GraphKeys.OUTPUTS, p)
 
 		with tf.name_scope('test'):
 			probs = model.create_probs(settings, samples(tf_data.Subset.TEST), reuse=True)
-			for p in probs:
+			for p in wrap(probs):
 				tf.add_to_collection(GraphKeys.OUTPUTS, p)
 
 		tf.add_to_collection(GraphKeys.ENCODERS, model.create_encoder(settings, reuse=True))
@@ -197,11 +198,13 @@ def model(settings):
 def losses(settings):
 	loss_lib = importlib.import_module('tensorflow_models.losses.' + settings['loss'])
 	with tf.name_scope('losses'):
-		tf.add_to_collection(GraphKeys.LOSSES, loss_lib.create('train'))
-		tf.add_to_collection(GraphKeys.LOSSES, loss_lib.create('test'))
+		ls = wrap(loss_lib.create('train')) + wrap(loss_lib.create('test'))
+		for l in ls:
+			tf.add_to_collection(GraphKeys.LOSSES, l)
 
 def optimizers(settings):
 	pass
+	
 
 def latentshape(settings):
 	return [settings['batch_size'], settings['latent_dimension']]
