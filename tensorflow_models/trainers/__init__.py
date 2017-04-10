@@ -122,5 +122,5 @@ class BaseTrainer(object):
 		raise NotImplementedError('Finalization hook has not been implemented')
 	def learning_hooks(self):
 		raise NotImplementedError('Learning hooks factory has not been implemented')
-	def initialize_results_hooks(self):
+	def initialize_results_hook(self):
 		raise NotImplementedError('Results initialization hook has not been implemented')
