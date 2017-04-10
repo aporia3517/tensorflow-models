@@ -58,7 +58,7 @@ class BaseTrainer(object):
 	def _resume(self):
 		if self._settings['resume_from'] is None:
 			self.step = 0
-			self.results = self._initialize_results()
+			self.results = self.initialize_results_hook()
 			self.prior_noise = self.sess.run(tf_models.get_prior())
 		else:
 			# Check that checkpoint file exists
@@ -72,13 +72,6 @@ class BaseTrainer(object):
 			# TODO: Version that omits prior noise for supervised learning
 			self.results, self.prior_noise = tf_models.utils.snapshot.load_results(snapshot_filepath)
 			print("Model restored from epoch {}".format(self._settings['resume_from']))
-
-	def _initialize_results(self):
-		results = {}
-		results['costs_train'] = []
-		results['times_train'] = []
-		results['costs_test'] = []
-		return results
 
 	# Work out how many steps to do, and how many minibatches per step
 	def _initialize_counters(self):
@@ -129,3 +122,5 @@ class BaseTrainer(object):
 		raise NotImplementedError('Finalization hook has not been implemented')
 	def learning_hooks(self):
 		raise NotImplementedError('Learning hooks factory has not been implemented')
+	def initialize_results_hooks(self):
+		raise NotImplementedError('Results initialization hook has not been implemented')

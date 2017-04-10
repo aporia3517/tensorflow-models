@@ -102,7 +102,7 @@ def after_step_hook(session):
 
 	print('epoch {:.3f}, train loss = {:.2f}, adv loss = {:.2f}, test loss = {:.2f} ({:.1f} examples/sec)'.format(session.epoch(), train_loss, adversary_value, test_loss, examples_per_sec))
 
-def initialize_results():
+def initialize_results(self):
 	results = {}
 	results['costs_train'] = []
 	results['times_train'] = []

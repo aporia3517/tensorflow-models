@@ -25,15 +25,12 @@ from __future__ import division
 from __future__ import print_function
 
 import os, sys
-import importlib
 
 import tensorflow as tf
 import tensorflow_models as tf_models
 from tensorflow_models.trainers import BaseTrainer
 
-#import numpy as np
-
-class VaeTrainer(BaseTrainer):
+class Trainer(BaseTrainer):
 	def finalize_hook(self):
 		print('Done training for {} epochs'.format(self.epoch()))
 
@@ -89,3 +86,10 @@ class VaeTrainer(BaseTrainer):
 		sec_per_batch = train_time / self._batches_per_step
 
 		print('epoch {:.3f}, train loss = {:.2f}, test loss = {:.2f} ({:.1f} examples/sec)'.format(self.epoch(), train_loss, test_loss, examples_per_sec))
+
+	def initialize_results_hook(self):
+		results = {}
+		results['costs_train'] = []
+		results['times_train'] = []
+		results['costs_test'] = []
+		return results

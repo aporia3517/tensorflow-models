@@ -44,7 +44,7 @@ def create(settings):
 	#print('generator variables')
 	#print([var.name for var in generator_vars])
 	#print('discriminator variables')
-	#print([var.name for var in adversary_vars])
+	#print([var.name for var in discriminator_vars])
 	#print('other variables')
 
 	# Add to the Graph operations that train the model.
