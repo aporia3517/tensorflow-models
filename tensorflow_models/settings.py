@@ -44,12 +44,14 @@ def defaults():
 		'optimizer': 'adam',	# Module name for optimizer: ['adam', 'rmsprop', 'sgd']
 		'learning_rate': 0.001,   # Learning rate
 		'batch_size': 100,
+		'sample_size': 25, # Number of samples to draw from prior for decoding to samples from model
 		'count_epochs': 100, # How many epochs to train for
 		'count_steps': None,	# How many steps to train for (takes precedence over 'count_epochs')
 		'batches_per_step': None,	# How many minibatches of training to do per step. Defaults to 1 epoch's worth
 		'plot_samples': False, # Whether to plot samples at snapshot steps
 		'steps_per_snapshot': None, # Save model at step 0, 10, 20, etc., that can be loaded later
 		'resume_from': None, # Resume from a snapshot. Set to step (not epoch) number
+		'weight_clip': None, # Weight clipping threshold applied to discriminator vars in W-GAN
 		#'clip_gradients': True,	# Whether to clip each individual gradient element
 		#'normalize_gradients': True,	# Whether to normalize sum of gradients if it exceeds a threshold
 		#'gradient_threshold': 1.0,	# Threshold for clipping each element of gradient
@@ -65,11 +67,12 @@ def filename(settings):
 
 def snapshots_filepath(settings, paths):
 	return os.path.join(paths['snapshots'], filename(settings))
-	#return os.path.join(path, filename(settings))
 
-def plots_filepath(settings, paths):
-	return os.path.join(paths['plots'], filename(settings))
-	#return os.path.join(path, filename(settings))
+def results_filepath(settings, paths):
+	return os.path.join(paths['results'], filename(settings))
+
+def samples_filepath(settings, paths):
+	return os.path.join(paths['samples'], filename(settings))
 
 # Load the settings from a file that overwrites defaults
 def load(filename, paths):

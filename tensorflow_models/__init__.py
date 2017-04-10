@@ -163,14 +163,16 @@ def get_decoder():
 	if not ops is []:
 		return ops[0]
 	else:
-		raise ValueError('No decoder sampling operation exists')
+		return None
+		#raise ValueError('No decoder sampling operation exists')
 
 def get_encoder():
 	ops = tf.get_collection(GraphKeys.ENCODERS)
 	if not ops is []:
 		return ops[0]
 	else:
-		raise ValueError('No encoder sampling operation exists')
+		return None
+		#raise ValueError('No encoder sampling operation exists')
 
 def get_output(name):
 	ops = tf.get_collection(GraphKeys.OUTPUTS)

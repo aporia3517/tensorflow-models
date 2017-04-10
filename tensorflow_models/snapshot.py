@@ -30,11 +30,10 @@ from six.moves import cPickle as pickle
 import utils.file
 
 # Save results so we can plot them later and resume from snapshots
-def save_results(filepath, epoch, results, prior_noise):
+def save_results(filepath, epoch, results):
 	results_filepath = filepath + '-' + str(epoch) + '.results'
 	with open(results_filepath, 'wb') as f:
 		pickle.dump(results, f, protocol = pickle.HIGHEST_PROTOCOL)
-		pickle.dump(prior_noise, f, protocol = pickle.HIGHEST_PROTOCOL)
 
 def load_results(filepath):
 	results_filepath = filepath + '.results'
@@ -44,6 +43,4 @@ def load_results(filepath):
 
 	with open(results_filepath, 'rb') as f:
 		results = pickle.load(f)
-		prior_noise = pickle.load(f)
-
-	return results, prior_noise
+		return results

@@ -32,9 +32,11 @@ import numpy as np
 
 # TODO: More extensive set of functions to visualize learning, both during and afterwards
 
-def sample_grid(outputfilename, samples, ext = 'png', imgrange = (0.0, 1.0)):
+def sample_grid(outputfilename, samples, sample_size, ext = 'png', imgrange = (0.0, 1.0)):
 	range_min, range_max = imgrange
 	n, c, h, w = samples.shape
+	assert(n >= sample_size)
+	n = sample_size
 
 	# Normalize samples so between 0 and 1
 	samples = (samples - range_min) / np.float((range_max - range_min))

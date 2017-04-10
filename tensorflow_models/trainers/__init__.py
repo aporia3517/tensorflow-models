@@ -43,6 +43,9 @@ class BaseTrainer(object):
 		self._initialize_counters()
 		self._decoder = tf_models.get_decoder()
 		self._z_placeholder = tf_models.codes_placeholder()
+
+		if not self._decoder is None:
+			assert(settings['batch_size'] >= settings['sample_size'])
 		
 	def __enter__(self):
 		self._resume()
@@ -59,7 +62,8 @@ class BaseTrainer(object):
 		if self._settings['resume_from'] is None:
 			self.step = 0
 			self.results = self.initialize_results_hook()
-			self.prior_noise = self.sess.run(tf_models.get_prior())
+			if not self._decoder is None:
+				self.results['prior_noise'] = self.sess.run(tf_models.get_prior())
 		else:
 			# Check that checkpoint file exists
 			# TODO: Test this! I think it will fail on utils.settings.filepath because it doesn't have paths passed in
@@ -70,7 +74,8 @@ class BaseTrainer(object):
 			self._saver.restore(self.sess, snapshot_filepath)
 
 			# TODO: Version that omits prior noise for supervised learning
-			self.results, self.prior_noise = tf_models.utils.snapshot.load_results(snapshot_filepath)
+			# TODO: Need to remove decoding samples in other parts too!
+			self.results = tf_models.utils.snapshot.load_results(snapshot_filepath)
 			print("Model restored from epoch {}".format(self._settings['resume_from']))
 
 	# Work out how many steps to do, and how many minibatches per step
@@ -104,10 +109,10 @@ class BaseTrainer(object):
 	def _save_snapshot(self):
 		if (not self._settings['steps_per_snapshot'] is None) and (self.step % self._settings['steps_per_snapshot'] == 0):
 			self._saver.save(self.sess, tf_models.settings.snapshots_filepath(self._settings, self._paths), global_step=self.step)
-			tf_models.snapshot.save_results(tf_models.settings.snapshots_filepath(self._settings, self._paths), self.step, self.results, self.prior_noise)
-			if self._settings['plot_samples']:
-				decoded_samples = self.sess.run(self._decoder, feed_dict={self._z_placeholder: self.prior_noise})
-				tf_models.plot.sample_grid(tf_models.settings.plots_filepath(self._settings, self._paths) + '-samples-' + str(self.step), decoded_samples.reshape(tf_models.unflattened_batchshape(self._settings)))
+			tf_models.snapshot.save_results(tf_models.settings.snapshots_filepath(self._settings, self._paths), self.step, self.results)
+			if self._settings['plot_samples'] and not self._decoder is None:
+				decoded_samples = self.sess.run(self._decoder, feed_dict={self._z_placeholder: self.results['prior_noise']})
+				tf_models.plot.sample_grid(tf_models.settings.samples_filepath(self._settings, self._paths) + '-samples-' + str(self.step), decoded_samples.reshape(tf_models.unflattened_batchshape(self._settings)), self._settings['sample_size'])
 
 	# Abtract methods
 	def initialize_hook(self):
