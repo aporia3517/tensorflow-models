@@ -54,18 +54,18 @@ def discriminator_network(settings, inputs):
 	return tf_models.layers.mlp(inputs, settings['discriminator_sizes'] + [1], final_activation_fn=tf.nn.sigmoid)
 
 def create_probs(settings, inputs, reuse=False):
-		eps = tf.random_uniform(tf_models.latentshape(settings), minval=-1., maxval=1., dtype=tf.float32)
+	eps = tf.random_uniform(tf_models.latentshape(settings), minval=-1., maxval=1., dtype=tf.float32)
 
-		with tf.variable_scope('generator', reuse=reuse):
-			fake = generator_network(settings, eps)
+	with tf.variable_scope('generator', reuse=reuse):
+		fake = generator_network(settings, eps)
 
-		with tf.variable_scope('discriminator', reuse=reuse):
-			p_data = discriminator_network(settings, inputs)
-			tf.get_variable_scope().reuse_variables()
-			p_fake = discriminator_network(settings, fake)
+	with tf.variable_scope('discriminator', reuse=reuse):
+		p_data = discriminator_network(settings, inputs)
+		tf.get_variable_scope().reuse_variables()
+		p_fake = discriminator_network(settings, fake)
 
-		ll_data = tf.identity(tf.reduce_sum(tf_models.safe_log(p_data), 1), name='p_x/log_prob_real')
-		ll_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(p_fake), 1), name='p_x/log_prob_fake')
-		ll_one_minus_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(1. - p_fake), 1), name='p_x/log_one_minus_prob_fake')
+	ll_data = tf.identity(tf.reduce_sum(tf_models.safe_log(p_data), 1), name='p_x/log_prob_real')
+	ll_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(p_fake), 1), name='p_x/log_prob_fake')
+	ll_one_minus_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(1. - p_fake), 1), name='p_x/log_one_minus_prob_fake')
 
-		return ll_data, ll_fake, ll_one_minus_fake
+	return ll_data, ll_fake, ll_one_minus_fake

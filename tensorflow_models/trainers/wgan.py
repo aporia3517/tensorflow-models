@@ -43,6 +43,8 @@ class Trainer(BaseTrainer):
 		train_critic_loss_op = tf_models.get_loss('train/critic')
 		test_critic_loss_op = tf_models.get_loss('test/critic')
 
+		a_per_g = self._settings['adversary_steps_per_generator_step']
+
 		def train(count_steps):
 			total_generator = 0.
 			total_critic = 0.
@@ -51,8 +53,8 @@ class Trainer(BaseTrainer):
 
 				# Try interweaving
 				_, this_generator = self.sess.run([generator_train_op, train_generator_loss_op])
-				#for jdx in range(3):
-				_, this_critic = self.sess.run([critic_train_op, train_critic_loss_op])
+				for jdx in range(a_per_g):
+					_, this_critic = self.sess.run([critic_train_op, train_critic_loss_op])
 
 				total_critic += this_critic
 				total_generator += this_generator

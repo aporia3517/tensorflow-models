@@ -32,6 +32,9 @@
     <Compile Include="losses\avb_elbo.py" />
     <Compile Include="losses\elbo.py" />
     <Compile Include="losses\gan.py" />
+    <Compile Include="losses\wgan_gp.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="losses\wgan.py">
       <SubType>Code</SubType>
     </Compile>
@@ -39,6 +42,9 @@
     <Compile Include="models\avb_vae.py" />
     <Compile Include="models\gan.py" />
     <Compile Include="models\vae.py" />
+    <Compile Include="models\wgan_gp.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\wgan.py">
       <SubType>Code</SubType>
     </Compile>

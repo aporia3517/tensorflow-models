@@ -58,12 +58,17 @@ def create_probs(settings, inputs, reuse=False):
 	with tf.variable_scope('generator', reuse=reuse):
 		fake = generator_network(settings, eps)
 
+	eps = tf.random_uniform([settings['batch_size'], 1], minval=0., maxval=1.)
+	interpolated = tf.identity(eps*inputs + (1. - eps)*fake, name='x/interpolated')
+
 	with tf.variable_scope('critic', reuse=reuse):
 		p_data = critic_network(settings, inputs)
 		tf.get_variable_scope().reuse_variables()
 		p_fake = critic_network(settings, fake)
+		p_interpolated = critic_network(settings, interpolated)
 
 	critic_real = tf.identity(tf.reduce_sum(p_data, 1), name='p_x/critic_real')
 	critic_fake = tf.identity(tf.reduce_sum(p_fake, 1), name='p_x/critic_fake')
+	critic_interpolated = tf.identity(p_interpolated, name='p_x/critic_interpolated')
 
-	return critic_real, critic_fake
+	return critic_real, critic_fake, critic_interpolated, interpolated

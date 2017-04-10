@@ -41,10 +41,18 @@ def create(settings):
 	critic_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/critic')]
 
 	# Add to the Graph operations that train the model.
-	generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator')
-	critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['adversary_rate'], var_list=critic_vars, name='critic')
+	if not settings['optimizer'] is 'adam':
+		generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator')
+		critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['adversary_rate'], var_list=critic_vars, name='critic')
+	else:
+		# DEBUG
+		print('Using Adam optimizer for W-GAN learning...')
+
+		generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
+		critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['adversary_rate'], var_list=critic_vars, name='critic')
 
 	if not settings['weight_clip'] is None:
+		print('Clipping weights')
 		with tf.control_dependencies([critic_train_op]):
 			critic_train_op = tf.group(*[p.assign(tf.clip_by_value(p, -settings['weight_clip'], settings['weight_clip'])) for p in critic_vars], name='critic')
 
