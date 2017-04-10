@@ -98,7 +98,7 @@ class SessionContext(object):
 
 	def __enter__(self):
 		# Start the Tensorflow session
-		self.sess = tf.Session()
+		self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 		self.sess.__enter__()
 		self.sess.run(self._init_op)
 

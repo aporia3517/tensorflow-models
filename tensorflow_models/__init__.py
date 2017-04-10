@@ -96,6 +96,10 @@ def create(settings):
 		loss_ops(settings)
 		inference_ops(settings)
 
+def trainer(settings):
+	lib = importlib.import_module('tensorflow_models.trainers.' + settings['trainer'])
+	return lib.Trainer
+
 # TODO: Would it be better to expand the settings dictionary when it is called and have named arguments?
 def input_ops(settings):
 	with tf.name_scope('inputs/train'):
