@@ -266,4 +266,7 @@ def standard_uniform(name='Uniform'):
 	return tf.contrib.distributions.Uniform(name=name)
 
 def gan_uniform(name='Uniform'):
-	return tf.contrib.distributions.Uniform(a=-1., b=1., name=name)
+	try:
+		return tf.contrib.distributions.Uniform(a=-1., b=1., name=name)
+	except:
+		return tf.contrib.distributions.Uniform(low=-1., high=1., name=name)
