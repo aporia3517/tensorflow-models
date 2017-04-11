@@ -21,6 +21,9 @@
   <ItemGroup>
     <Compile Include="contexts\__init__.py" />
     <Compile Include="inference\avb.py" />
+    <Compile Include="inference\em_avb.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="inference\gan.py" />
     <Compile Include="inference\svb.py" />
     <Compile Include="inference\wgan.py">
@@ -29,8 +32,11 @@
     <Compile Include="inference\__init__.py" />
     <Compile Include="initializations.py" />
     <Compile Include="layers\__init__.py" />
-    <Compile Include="losses\avb_elbo.py" />
+    <Compile Include="losses\avb.py" />
     <Compile Include="losses\elbo.py" />
+    <Compile Include="losses\em_avb.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="losses\gan.py" />
     <Compile Include="losses\wgan_gp.py">
       <SubType>Code</SubType>
@@ -40,6 +46,12 @@
     </Compile>
     <Compile Include="losses\__init__.py" />
     <Compile Include="models\avb_vae.py" />
+    <Compile Include="models\dcgan.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\em_avb_vae.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\gan.py" />
     <Compile Include="models\vae.py" />
     <Compile Include="models\wgan_gp.py">
@@ -58,6 +70,9 @@
     <Compile Include="snapshot.py" />
     <Compile Include="timer.py" />
     <Compile Include="trainers\avb.py" />
+    <Compile Include="trainers\em_avb.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="trainers\gan.py" />
     <Compile Include="trainers\svb.py" />
     <Compile Include="trainers\wgan.py">
