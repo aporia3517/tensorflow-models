@@ -34,7 +34,7 @@ import numpy as np
 
 def sample_grid(outputfilename, samples, sample_size, ext = 'png', imgrange = (0.0, 1.0)):
 	range_min, range_max = imgrange
-	n, c, h, w = samples.shape
+	n, h, w, c = samples.shape
 	assert(n >= sample_size)
 	n = sample_size
 
@@ -50,7 +50,7 @@ def sample_grid(outputfilename, samples, sample_size, ext = 'png', imgrange = (0
 		idx = 0
 		for i in range(samples_pr_side):
 			for j in range(samples_pr_side):
-				canvas[i*h:(i+1)*h, j*w:(j+1)*w] = np.clip(samples[idx, 0], 1e-6, 1-1e-6)
+				canvas[i*h:(i+1)*h, j*w:(j+1)*w] = np.clip(samples[idx, :, :, 0], 1e-6, 1-1e-6)
 				idx += 1
 		plt.imshow(canvas, cmap = 'gray')
 
@@ -60,9 +60,9 @@ def sample_grid(outputfilename, samples, sample_size, ext = 'png', imgrange = (0
 		idx = 0
 		for i in range(samples_pr_side):
 			for j in range(samples_pr_side):
-				canvas[i*h:(i+1)*h, j*w:(j+1)*w, 0] = np.clip(samples[idx, 0], 1e-6, 1-1e-6)
-				canvas[i*h:(i+1)*h, j*w:(j+1)*w, 1] = np.clip(samples[idx, 1], 1e-6, 1-1e-6)
-				canvas[i*h:(i+1)*h, j*w:(j+1)*w, 2] = np.clip(samples[idx, 2], 1e-6, 1-1e-6)
+				canvas[i*h:(i+1)*h, j*w:(j+1)*w, 0] = np.clip(samples[idx, :, :, 0], 1e-6, 1-1e-6)
+				canvas[i*h:(i+1)*h, j*w:(j+1)*w, 1] = np.clip(samples[idx, :, :, 1], 1e-6, 1-1e-6)
+				canvas[i*h:(i+1)*h, j*w:(j+1)*w, 2] = np.clip(samples[idx, :, :, 2], 1e-6, 1-1e-6)
 				idx += 1
 		plt.imshow(canvas)
 

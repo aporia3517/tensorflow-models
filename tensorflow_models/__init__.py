@@ -24,7 +24,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os, sys
+import os, sys, six
 import importlib
 from enum import Enum
 
@@ -47,12 +47,32 @@ class GraphKeys(object):
 	LOSSES = 'losses'
 	INFERENCE = 'inference'
 
+# Return the HWC shape of a sample image after transformations have been applied!
+def sample_shape(settings):
+	shape = list(tf_data.sample_shape(settings['dataset']))
+	if 'transformations' in settings:
+		for k, v in six.viewitems(settings['transformations']):
+			if k == 'resize':
+				shape[0:2] = v
+			# TODO: Extra case once added cropping
+			# elif k == 'crop':
+	return shape
+
+# Return the scale of samples (which is [0, 1] unless transformations have been applied)
+def sample_scale(settings):
+	scale = [0, 1]
+	if 'transformations' in six.viewitems(settings['transformations']):
+		for k, v in transformations:
+			if k == 'rescale':
+				scale = list(v)
+	return scale
+
 # Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
 def unflattened_batchshape(settings):
-	return [settings['batch_size']] + list(tf_data.sample_shape(settings['dataset']))
+	return [settings['batch_size']] + sample_shape(settings)
 
 def flattened_shape(settings):
-	return [int(np.prod(tf_data.sample_shape(settings['dataset'])))]
+	return [int(np.prod(sample_shape(settings)))]
 
 def flattened_batchshape(settings):
 	return [settings['batch_size']] + flattened_shape(settings)
