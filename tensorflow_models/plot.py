@@ -38,6 +38,11 @@ def sample_grid(outputfilename, samples, sample_size, ext = 'png', imgrange = (0
 	assert(n >= sample_size)
 	n = sample_size
 
+	# DEBUG
+	#print('imgrange', imgrange)
+	#print('max sample', np.max(samples))
+	#print('min sample', np.min(samples))
+
 	# Normalize samples so between 0 and 1
 	samples = (samples - range_min) / np.float((range_max - range_min))
 	samples_pr_side = int(np.sqrt(n))

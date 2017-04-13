@@ -61,8 +61,8 @@ def sample_shape(settings):
 # Return the scale of samples (which is [0, 1] unless transformations have been applied)
 def sample_scale(settings):
 	scale = [0, 1]
-	if 'transformations' in six.viewitems(settings['transformations']):
-		for k, v in transformations:
+	if 'transformations' in settings:
+		for k, v in six.viewitems(settings['transformations']):
 			if k == 'rescale':
 				scale = list(v)
 	return scale

@@ -49,12 +49,12 @@ def create_decoder(settings, reuse=True):
 
 def generator_network(settings, code):
 	# TODO: DC-GAN implemenation
-	gf_dim = 64
+	gf_dim = 32
 	h = slim.fully_connected(code, gf_dim*4*4*4, scope='projection', activation_fn=tf.nn.elu)
 	h = tf.reshape(h, [-1, 4, 4, gf_dim*4])
 	h = slim.conv2d_transpose(h, gf_dim*2, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g2')
 	h = slim.conv2d_transpose(h, gf_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g3')
-	h = slim.conv2d_transpose(h, 1, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.sigmoid, scope='g4')
+	h = slim.conv2d_transpose(h, 1, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.tanh, scope='g4')
 	h = tf.reshape(h, tf_models.batchshape(settings))
 
 	return h
@@ -63,7 +63,7 @@ def discriminator_network(settings, inputs):
 	# TODO: DC-GAN implementation
 	#h = tf.reshape(inputs, [100, 28, 28, 1])
 	h = inputs
-	df_dim = 64
+	df_dim = 32
 	h = slim.conv2d(h, df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h1')
 	h = slim.conv2d(h, 2*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h2')
 	h = slim.conv2d(h, 4*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h3')

@@ -112,7 +112,12 @@ class BaseTrainer(object):
 			tf_models.snapshot.save_results(tf_models.settings.snapshots_filepath(self._settings, self._paths), self.step, self.results)
 			if self._settings['plot_samples'] and not self._decoder is None:
 				decoded_samples = self.sess.run(self._decoder, feed_dict={self._z_placeholder: self.results['prior_noise']})
-				tf_models.plot.sample_grid(tf_models.settings.samples_filepath(self._settings, self._paths) + '-samples-' + str(self.step), decoded_samples.reshape(tf_models.unflattened_batchshape(self._settings)), self._settings['sample_size'])
+				tf_models.plot.sample_grid(
+					tf_models.settings.samples_filepath(self._settings, self._paths) + '-samples-' + str(self.step),
+					decoded_samples.reshape(tf_models.unflattened_batchshape(self._settings)),
+					self._settings['sample_size'],
+					imgrange=tf_models.sample_scale(self._settings))
+				#print('using scale', tf_models.sample_scale(self._settings))
 
 	# Abtract methods
 	def initialize_hook(self):
