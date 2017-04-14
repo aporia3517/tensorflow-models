@@ -30,12 +30,12 @@ import tensorflow_models as tf_models
 
 def loss(critic_real, critic_fake, name):
 	# Maximising this as adversary wants to disciminate better
-	critic_objective = tf.reduce_mean(critic_real - critic_fake)
+	critic_objective = -tf.reduce_mean(critic_real - critic_fake)
 
 	# Also, maximising this instead of minimizing mean(ll_one_minus_fake)
-	generator_objective = tf.reduce_mean(critic_fake)
+	generator_objective = -tf.reduce_mean(critic_fake)
 
-	return tf.identity(-critic_objective, name=name+'/critic'), tf.identity(-generator_objective, name=name+'/generator')
+	return tf.identity(critic_objective, name=name+'/critic'), tf.identity(generator_objective, name=name+'/generator')
 
 def create(name='train'):
 	critic_real = tf_models.get_output(name + '/p_x/critic_real')

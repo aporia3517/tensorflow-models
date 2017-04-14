@@ -29,23 +29,26 @@ import importlib
 import tensorflow as tf
 import tensorflow_models as tf_models
 
+
 # Create the training operations
 def create(settings):
 	optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + settings['optimizer'])
-	train_generator_loss = tf_models.get_loss('train/generator')
-	train_critic_loss = tf_models.get_loss('train/critic')
+	train_elbo_loss = tf_models.get_loss('train/elbo_like')
+	train_discriminator_loss = tf_models.get_loss('train/critic')
 	step = tf_models.global_step()
 
 	# Divide variables into those we optimize for the ELBO and those for the adversarial training
-	generator_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/generator')]
+	elbo_vars = [var for var in tf.trainable_variables() if not var.name.startswith('model/critic')]
+
+	# TODO: Check this does not include batch norm variables
 	critic_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/critic')]
 
 	# Add to the Graph operations that train the model.
 	if not settings['optimizer'] is 'adam':
-		generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator')
+		elbo_train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_like')
 		critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['adversary_rate'], var_list=critic_vars, name='critic')
 	else:
-		generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
+		elbo_train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_like', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 		critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['adversary_rate'], var_list=critic_vars, name='critic', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 
 	if not settings['weight_clip'] is None:
@@ -53,4 +56,4 @@ def create(settings):
 		with tf.control_dependencies([critic_train_op]):
 			critic_train_op = tf.group(*[p.assign(tf.clip_by_value(p, -settings['weight_clip'], settings['weight_clip'])) for p in critic_vars], name='critic')
 
-	return generator_train_op, critic_train_op
+	return elbo_train_op, critic_train_op

@@ -48,7 +48,11 @@ def create(settings):
 	#print('other variables')
 
 	# Add to the Graph operations that train the model.
-	generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator')
-	discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator')
+	if not settings['optimizer'] is 'adam':
+		generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator')
+		discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator')
+	else:
+		generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
+		discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 
 	return generator_train_op, discriminator_train_op

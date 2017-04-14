@@ -34,5 +34,8 @@ def create(settings):
 	train_elbo_loss = tf_models.get_loss('train/elbo')
 	step = tf_models.global_step()
 
-	train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], step=step, name='elbo')
+	if not settings['optimizer'] is 'adam':
+		train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], step=step, name='elbo')
+	else:
+		train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], step=step, name='elbo', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 	return train_op

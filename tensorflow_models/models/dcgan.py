@@ -83,7 +83,7 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		tf.get_variable_scope().reuse_variables()
 		# TODO: Should this be false the second time round?
 		#p_fake = discriminator_network(settings, fake, is_training=is_training)
-		p_fake = discriminator_network(settings, fake, is_training=False)
+		p_fake = discriminator_network(settings, fake, is_training=is_training)
 
 	ll_data = tf.identity(tf.reduce_sum(tf_models.safe_log(p_data), 1), name='p_x/log_prob_real')
 	ll_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(p_fake), 1), name='p_x/log_prob_fake')

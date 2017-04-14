@@ -24,35 +24,28 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
+import tensorflow_models as tf_models
 
-def training(loss, learning_rate=0.001, var_list=None, step=None, clip_grads=False, name='Adam', beta1=0.9, beta2=0.999):
-	# Add a scalar summary for the snapshot loss.
-	# TODO: Adding summaries!
-	#tf.summary.scalar('loss', loss)
+# Adversarial variational Bayes loss
 
-	# Create the gradient descent optimizer with the given learning rate.
-	optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name=name, beta1=beta1, beta2=beta2)
+# lg_p_x_given_z ~ batch_size x 784
+# adversary ~ ?
+# prior_adversary ~ ?
+def loss(lg_p_x_given_z, critic, prior_critic, name):	
+	# Eq (3.9)
+	# NOTE: Take negative since we are minimizing
+	elbo_loss = -tf.reduce_mean(critic + lg_p_x_given_z)
 
-	# Use the optimizer to apply the gradients that minimize the loss
-	# TODO: Better way to code this??
-	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+	# Eq (3.3)
+	discriminator_loss = -tf.reduce_mean(prior_critic - critic)
 
-	# DEBUG
-	#print('update_ops', update_ops)
+	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/critic')
 
-	with tf.control_dependencies(update_ops):
-		if step is None:
-			if var_list is None:
-				train_op = optimizer.minimize(loss)
-			else:
-				train_op = optimizer.minimize(loss, var_list=var_list)
-		else:
-			if var_list is None:
-				train_op = optimizer.minimize(loss, global_step=step)
-			else:
-				train_op = optimizer.minimize(loss, global_step=step, var_list=var_list)
+def create(name='train'):
+	lg_p_x_given_z = tf_models.get_output(name + '/p_x_given_z/log_prob')
+	critic = tf_models.get_output(name + '/critic/generator')
+	prior_critic = tf_models.get_output(name + '/critic/prior')
 
-	# TODO: Clip gradients!
-
-	return train_op
+	return loss(lg_p_x_given_z, critic, prior_critic, name=name)
