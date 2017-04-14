@@ -50,10 +50,10 @@ def create_decoder(settings, reuse=True):
 def generator_network(settings, code, is_training):
 	# TODO: DC-GAN implemenation
 	gf_dim = 32
-	h = slim.fully_connected(code, gf_dim*4*4*4, scope='projection', activation_fn=tf.nn.elu, normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
+	h = slim.fully_connected(code, gf_dim*4*4*4, scope='projection', activation_fn=tf.nn.elu, normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training})
 	h = tf.reshape(h, [-1, 4, 4, gf_dim*4])
-	h = slim.conv2d_transpose(h, gf_dim*2, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g2', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
-	h = slim.conv2d_transpose(h, gf_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g3', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
+	h = slim.conv2d_transpose(h, gf_dim*2, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g2', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training})
+	h = slim.conv2d_transpose(h, gf_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g3', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training})
 	h = slim.conv2d_transpose(h, 1, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.tanh, scope='g4')
 	h = tf.reshape(h, tf_models.batchshape(settings))
 
@@ -64,9 +64,9 @@ def discriminator_network(settings, inputs, is_training):
 	#h = tf.reshape(inputs, [100, 28, 28, 1])
 	h = inputs
 	df_dim = 32
-	h = slim.conv2d(h, df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h1', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
-	h = slim.conv2d(h, 2*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h2', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
-	h = slim.conv2d(h, 4*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h3', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
+	h = slim.conv2d(h, df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h1', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training})
+	h = slim.conv2d(h, 2*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h2', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training})
+	h = slim.conv2d(h, 4*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h3', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training})
 	h = tf.reshape(h, [100, -1])
 	h = slim.fully_connected(h, 1, activation_fn=tf.nn.sigmoid, scope='h4')
 
@@ -82,7 +82,8 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		p_data = discriminator_network(settings, inputs, is_training=is_training)
 		tf.get_variable_scope().reuse_variables()
 		# TODO: Should this be false the second time round?
-		p_fake = discriminator_network(settings, fake, is_training=is_training)
+		#p_fake = discriminator_network(settings, fake, is_training=is_training)
+		p_fake = discriminator_network(settings, fake, is_training=False)
 
 	ll_data = tf.identity(tf.reduce_sum(tf_models.safe_log(p_data), 1), name='p_x/log_prob_real')
 	ll_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(p_fake), 1), name='p_x/log_prob_fake')

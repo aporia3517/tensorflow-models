@@ -250,7 +250,7 @@ def model_ops(settings):
 				tf.add_to_collection(GraphKeys.OUTPUTS, p)
 
 		with tf.name_scope('test'):
-			probs = model.create_probs(settings, samples(tf_data.Subset.TEST), reuse=True)
+			probs = model.create_probs(settings, samples(tf_data.Subset.TEST), is_training=False, reuse=True)
 			for p in wrap(probs):
 				tf.add_to_collection(GraphKeys.OUTPUTS, p)
 
