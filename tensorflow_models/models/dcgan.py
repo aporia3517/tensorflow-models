@@ -76,12 +76,13 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	eps = tf.random_uniform(tf_models.latentshape(settings), minval=-1., maxval=1., dtype=tf.float32)
 
 	with tf.variable_scope('generator', reuse=reuse):
-		fake = generator_network(settings, eps)
+		fake = generator_network(settings, eps, is_training=is_training)
 
 	with tf.variable_scope('discriminator', reuse=reuse):
-		p_data = discriminator_network(settings, inputs)
+		p_data = discriminator_network(settings, inputs, is_training=is_training)
 		tf.get_variable_scope().reuse_variables()
-		p_fake = discriminator_network(settings, fake)
+		# TODO: Should this be false the second time round?
+		p_fake = discriminator_network(settings, fake, is_training=is_training)
 
 	ll_data = tf.identity(tf.reduce_sum(tf_models.safe_log(p_data), 1), name='p_x/log_prob_real')
 	ll_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(p_fake), 1), name='p_x/log_prob_fake')

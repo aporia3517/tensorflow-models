@@ -245,7 +245,7 @@ def model_ops(settings):
 					tf.add_to_collection(GraphKeys.PLACEHOLDERS, p)
 
 		with tf.name_scope('train'):
-			probs = model.create_probs(settings, samples(tf_data.Subset.TRAIN))
+			probs = model.create_probs(settings, samples(tf_data.Subset.TRAIN), is_training=True)
 			for p in wrap(probs):
 				tf.add_to_collection(GraphKeys.OUTPUTS, p)
 

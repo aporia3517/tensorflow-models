@@ -40,7 +40,7 @@ def create_prior(settings):
 
 # Black-box encoder: q(z | x, eps)
 # Returns a sample from z given x and epsilon
-def encoder_network(settings, inputs, eps):
+def encoder_network(settings, inputs, eps, is_training):
 	#with tf.variable_scope('q_z_given_x'):
 	return tf_models.layers.mlp(
 						tf.concat([inputs, eps], axis=1), 
@@ -49,11 +49,11 @@ def encoder_network(settings, inputs, eps):
 
 # Decoder: p(x | z)
 # Returns parameters for bernoulli distribution on x given z
-def decoder_network(settings, code):
+def decoder_network(settings, code, is_training):
 	return tf_models.layers.bernoulli_parameters_mlp(code, settings['decoder_sizes'] + tf_models.flattened_shape(settings))
 
 # Discriminator used for adversarial training in logits
-def discriminator_network(settings, x, z):
+def discriminator_network(settings, x, z, is_training):
 	x_layer = tf_models.layers.mlp(x, settings['discriminator_x_sizes'], scope='x_layer')
 	z_layer = tf_models.layers.mlp(z, settings['discriminator_z_sizes'], scope='z_layer')
 	return tf_models.layers.mlp(
@@ -67,7 +67,7 @@ def create_encoder(settings, reuse=True):
 
 	noise = tf.random_normal(tf_models.noiseshape(settings), 0, 1, dtype=tf.float32)
 	with tf.variable_scope('encoder', reuse=reuse):
-		encoder = tf.identity(encoder_network(settings, x_placeholder, noise), name='q_z_given_x_eps/sample')
+		encoder = tf.identity(encoder_network(settings, x_placeholder, noise, is_training=False), name='q_z_given_x_eps/sample')
 	return encoder
 
 def create_decoder(settings, reuse=True):
@@ -75,25 +75,25 @@ def create_decoder(settings, reuse=True):
 	assert(not z_placeholder is None)
 
 	with tf.variable_scope('decoder', reuse=reuse):
-		logits_x = decoder_network(settings, z_placeholder)
+		logits_x = decoder_network(settings, z_placeholder, is_training=False)
 		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 		decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
 	return decoder
 
-def create_probs(settings, inputs, reuse=False):
+def create_probs(settings, inputs, is_training, reuse=False):
 	# The noise is distributed i.i.d. N(0, 1)
 	noise = tf.random_normal(tf_models.noiseshape(settings), 0, 1, dtype=tf.float32)
 
 	# Use black-box inference network to sample z, given inputs and noise
 	with tf.variable_scope('encoder', reuse=reuse):
-		z_sample = encoder_network(settings, inputs, noise)
+		z_sample = encoder_network(settings, inputs, noise, is_training=is_training)
 
 	# The prior on z is also i.i.d. N(0, 1)
 	z_prior = tf.random_normal(tf_models.latentshape(settings), 0, 1, dtype=tf.float32)
 		
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
-		logits_x = decoder_network(settings, z_sample)
+		logits_x = decoder_network(settings, z_sample, is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 
 	# Log likelihood of reconstructed inputs
@@ -101,8 +101,8 @@ def create_probs(settings, inputs, reuse=False):
 
 	# Discriminator T(x, z)
 	with tf.variable_scope('discriminator', reuse=reuse):
-		discriminator = tf.identity(discriminator_network(settings, inputs, z_sample), name='generator')
+		discriminator = tf.identity(discriminator_network(settings, inputs, z_sample, is_training=is_training), name='generator')
 		tf.get_variable_scope().reuse_variables()
-		prior_discriminator = tf.identity(discriminator_network(settings, inputs, z_prior), name='prior')
+		prior_discriminator = tf.identity(discriminator_network(settings, inputs, z_prior, is_training=is_training), name='prior')
 
 	return lg_p_x_given_z, discriminator, prior_discriminator

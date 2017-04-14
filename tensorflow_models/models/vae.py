@@ -41,13 +41,13 @@ def create_prior(settings):
 
 # Encoder: q(z | x)
 # Returns the parameters for the normal distribution on z given x
-def encoder_network(settings, inputs):
+def encoder_network(settings, inputs, is_training):
 	#with tf.variable_scope('q_z_given_x'):
 	return tf_models.layers.gaussian_parameters_mlp(inputs, settings['encoder_sizes'] + [settings['latent_dimension']])
 
 # Decoder: p(x | z)
 # Returns parameters for bernoulli distribution on x given z
-def decoder_network(settings, code):
+def decoder_network(settings, code, is_training):
 	return tf_models.layers.bernoulli_parameters_mlp(code, settings['decoder_sizes'] + tf_models.flattened_shape(settings))
 
 def create_encoder(settings, reuse=True):
@@ -55,7 +55,7 @@ def create_encoder(settings, reuse=True):
 	assert(not x_placeholder is None)
 
 	with tf.variable_scope('encoder', reuse=reuse):
-		mean_z, diag_stdev_z = encoder_network(settings, x_placeholder)
+		mean_z, diag_stdev_z = encoder_network(settings, x_placeholder, is_training=False)
 		dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z)
 		encoder = tf.identity(dist_z_given_x.sample(name='sample'), name='q_z_given_x/sample')
 	return encoder
@@ -65,17 +65,17 @@ def create_decoder(settings, reuse=True):
 	assert(not z_placeholder is None)
 
 	with tf.variable_scope('decoder', reuse=reuse):
-		logits_x = decoder_network(settings, z_placeholder)
+		logits_x = decoder_network(settings, z_placeholder, is_training=False)
 		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 		decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
 	return decoder
 
-def create_probs(settings, inputs, reuse=False):
+def create_probs(settings, inputs, is_training, reuse=False):
 	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
 
 	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
 	with tf.variable_scope('encoder', reuse=reuse):
-		mean_z, diag_stdev_z = encoder_network(settings, inputs)
+		mean_z, diag_stdev_z = encoder_network(settings, inputs, is_training=is_training)
 	dist_z_given_x = tf.contrib.distributions.MultivariateNormalDiag(mean_z, diag_stdev_z)
 
 	# Draw one sample z from Gaussian distribution
@@ -84,7 +84,7 @@ def create_probs(settings, inputs, reuse=False):
 
 	# Use generator to determine mean of Bernoulli distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
-		logits_x = decoder_network(settings, z_sample)	
+		logits_x = decoder_network(settings, z_sample, is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 	
 	# NOTE: x | z is defined as over each pixel separate, where prior on z is a multivariate
