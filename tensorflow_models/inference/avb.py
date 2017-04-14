@@ -42,6 +42,7 @@ def create(settings):
 	discriminator_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/discriminator')]
 
 	# Add to the Graph operations that train the model.
+
 	elbo_train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_like')
 	adversarial_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator')
 

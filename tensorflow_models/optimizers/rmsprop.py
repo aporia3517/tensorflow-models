@@ -36,16 +36,18 @@ def training(loss, learning_rate=0.001, var_list=None, step=None, clip_grads=Fal
 
 	# Use the optimizer to apply the gradients that minimize the loss
 	# TODO: Better way to code this??
-	if step is None:
-		if var_list is None:
-			train_op = optimizer.minimize(loss)
+	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+	with tf.control_dependencies(update_ops):
+		if step is None:
+			if var_list is None:
+				train_op = optimizer.minimize(loss)
+			else:
+				train_op = optimizer.minimize(loss, var_list=var_list)
 		else:
-			train_op = optimizer.minimize(loss, var_list=var_list)
-	else:
-		if var_list is None:
-			train_op = optimizer.minimize(loss, global_step=step)
-		else:
-			train_op = optimizer.minimize(loss, global_step=step, var_list=var_list)
+			if var_list is None:
+				train_op = optimizer.minimize(loss, global_step=step)
+			else:
+				train_op = optimizer.minimize(loss, global_step=step, var_list=var_list)
 
 	# TODO: Clip gradients!
 

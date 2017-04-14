@@ -44,35 +44,35 @@ def create_decoder(settings, reuse=True):
 	assert(not z_placeholder is None)
 
 	with tf.variable_scope('generator', reuse=reuse):
-		decoder = tf.identity(generator_network(settings, z_placeholder), name='p_x/sample')
+		decoder = tf.identity(generator_network(settings, z_placeholder, is_training=False), name='p_x/sample')
 	return decoder
 
-def generator_network(settings, code):
+def generator_network(settings, code, is_training):
 	# TODO: DC-GAN implemenation
 	gf_dim = 32
-	h = slim.fully_connected(code, gf_dim*4*4*4, scope='projection', activation_fn=tf.nn.elu)
+	h = slim.fully_connected(code, gf_dim*4*4*4, scope='projection', activation_fn=tf.nn.elu, normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
 	h = tf.reshape(h, [-1, 4, 4, gf_dim*4])
-	h = slim.conv2d_transpose(h, gf_dim*2, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g2')
-	h = slim.conv2d_transpose(h, gf_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g3')
+	h = slim.conv2d_transpose(h, gf_dim*2, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g2', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
+	h = slim.conv2d_transpose(h, gf_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='g3', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
 	h = slim.conv2d_transpose(h, 1, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.tanh, scope='g4')
 	h = tf.reshape(h, tf_models.batchshape(settings))
 
 	return h
 
-def discriminator_network(settings, inputs):
+def discriminator_network(settings, inputs, is_training):
 	# TODO: DC-GAN implementation
 	#h = tf.reshape(inputs, [100, 28, 28, 1])
 	h = inputs
 	df_dim = 32
-	h = slim.conv2d(h, df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h1')
-	h = slim.conv2d(h, 2*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h2')
-	h = slim.conv2d(h, 4*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h3')
+	h = slim.conv2d(h, df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h1', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
+	h = slim.conv2d(h, 2*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h2', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
+	h = slim.conv2d(h, 4*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h3', normalization_fn=slim.batch_norm, normalization_params={scale=True, is_training=is_training})
 	h = tf.reshape(h, [100, -1])
 	h = slim.fully_connected(h, 1, activation_fn=tf.nn.sigmoid, scope='h4')
 
 	return h
 
-def create_probs(settings, inputs, reuse=False):
+def create_probs(settings, inputs, is_training, reuse=False):
 	eps = tf.random_uniform(tf_models.latentshape(settings), minval=-1., maxval=1., dtype=tf.float32)
 
 	with tf.variable_scope('generator', reuse=reuse):

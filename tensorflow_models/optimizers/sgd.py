@@ -40,9 +40,11 @@ def training(loss, learning_rate=0.001, var_list=None, step=None, clip_grads=Fal
 
 	# Use the optimizer to apply the gradients that minimize the loss
 	# (and also increment the global step counter) as a single training step.
-	if var_list is None:
-		train_op = optimizer.minimize(loss, global_step=step)
-	else:
-		train_op = optimizer.minimize(loss, global_step=step, var_list=var_list)
+	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+	with tf.control_dependencies(update_ops):
+		if var_list is None:
+			train_op = optimizer.minimize(loss, global_step=step)
+		else:
+			train_op = optimizer.minimize(loss, global_step=step, var_list=var_list)
 
 	return train_op
