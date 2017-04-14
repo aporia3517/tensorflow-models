@@ -11,14 +11,14 @@
 *.PDF	 diff=astextplain
 *.rtf	 diff=astextplain
 *.RTF	 diff=astextplain
-*.md text
-*.adoc text
-*.textile text
-*.mustache text
-*.csv text
-*.tab text
-*.tsv text
-*.sql text
+*.md text eol=crlf
+*.adoc text eol=crlf
+*.textile text eol=crlf
+*.mustache text eol=crlf
+*.csv text eol=crlf
+*.tab text eol=crlf
+*.tsv text eol=crlf
+*.sql text eol=crlf
 
 # Graphics
 *.png binary
@@ -31,15 +31,15 @@
 # SVG treated as an asset (binary) by default. If you want to treat it as text,
 # comment-out the following line and uncomment the line after.
 *.svg binary
-#*.svg text
+#*.svg text eol=crlf
 *.eps binary
 
 # Python source files
-*.pxd		text
-*.py 		text
-*.py3 		text
-*.pyw 		text
-*.pyx  		text
+*.pxd		text eol=crlf
+*.py 		text eol=crlf
+*.py3 		text eol=crlf
+*.pyw 		text eol=crlf
+*.pyx  		text eol=crlf
 
 # Python binary files
 *.db		binary
@@ -50,6 +50,6 @@
 *.pyo 		binary
 
 # Visual Studio
-*.sln text
-*.pyproj text
+*.sln text eol=crlf
+*.pyproj text eol=crlf
 *.suo binary
