@@ -43,29 +43,29 @@ def create_decoder(settings, reuse=True):
 	assert(not z_placeholder is None)
 
 	with tf.variable_scope('generator', reuse=reuse):
-		decoder = tf.identity(generator_network(settings, z_placeholder), name='p_x/sample')
+		decoder = tf.identity(generator_network(settings, z_placeholder, is_training=False), name='p_x/sample')
 	return decoder
 
-def generator_network(settings, code):
+def generator_network(settings, code, is_training):
 	return tf_models.layers.mlp(code, settings['generator_sizes'] + tf_models.flattened_shape(settings), final_activation_fn=tf.nn.sigmoid)
 
-def critic_network(settings, inputs):
+def critic_network(settings, inputs, is_training):
 	return tf_models.layers.mlp(inputs, settings['critic_sizes'] + [1], final_activation_fn=tf.identity)
 
-def create_probs(settings, inputs, reuse=False):
+def create_probs(settings, inputs, is_training, reuse=False):
 	eps = tf.random_uniform(tf_models.latentshape(settings), minval=-1., maxval=1., dtype=tf.float32)
 
 	with tf.variable_scope('generator', reuse=reuse):
-		fake = generator_network(settings, eps)
+		fake = generator_network(settings, eps, is_training=is_training)
 
 	eps = tf.random_uniform([settings['batch_size'], 1], minval=0., maxval=1.)
 	interpolated = tf.identity(eps*inputs + (1. - eps)*fake, name='x/interpolated')
 
 	with tf.variable_scope('critic', reuse=reuse):
-		p_data = critic_network(settings, inputs)
+		p_data = critic_network(settings, inputs, is_training=is_training)
 		tf.get_variable_scope().reuse_variables()
-		p_fake = critic_network(settings, fake)
-		p_interpolated = critic_network(settings, interpolated)
+		p_fake = critic_network(settings, fake, is_training=is_training)
+		p_interpolated = critic_network(settings, interpolated, is_training=is_training)
 
 	critic_real = tf.identity(tf.reduce_sum(p_data, 1), name='p_x/critic_real')
 	critic_fake = tf.identity(tf.reduce_sum(p_fake, 1), name='p_x/critic_fake')
