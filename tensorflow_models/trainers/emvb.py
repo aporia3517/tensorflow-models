@@ -39,7 +39,7 @@ class Trainer(BaseTrainer):
 		elbo_train_op = tf_models.get_inference('elbo_like')
 		train_elbo_loss_op = tf_models.get_loss('train/elbo_like')
 
-		discriminator_train_op = tf_models.get_inference('critic')
+		critic_train_op = tf_models.get_inference('critic')
 		train_critic_loss_op = tf_models.get_loss('train/critic')
 
 		test_elbo_loss_op = tf_models.get_loss('test/elbo_like')
@@ -52,8 +52,8 @@ class Trainer(BaseTrainer):
 				# Try interweaving
 				#_, this_elbo, _, this_adversarial = self.sess.run([elbo_train_op, elbo_loss_op, adversarial_train_op, adversarial_loss_op])
 				_, this_elbo = self.sess.run([elbo_train_op, train_elbo_loss_op])
-				#for jdx in range(10):
-				_, this_critic = self.sess.run([critic_train_op, train_critic_loss_op])
+				for jdx in range(5):
+					_, this_critic = self.sess.run([critic_train_op, train_critic_loss_op])
 				total_elbo += this_elbo
 				total_critic += this_critic
 			return total_elbo / count_steps, total_critic / count_steps

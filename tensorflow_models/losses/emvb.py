@@ -33,15 +33,23 @@ import tensorflow_models as tf_models
 # lg_p_x_given_z ~ batch_size x 784
 # adversary ~ ?
 # prior_adversary ~ ?
-def loss(lg_p_x_given_z, critic, prior_critic, name):	
+def loss(loglike, D_sample, D_prior, name):	
 	# Eq (3.9)
 	# NOTE: Take negative since we are minimizing
-	elbo_loss = -tf.reduce_mean(critic + lg_p_x_given_z)
 
-	# Eq (3.3)
-	discriminator_loss = -tf.reduce_mean(prior_critic - critic)
+	#print('lg_p_x_given_z.shape', lg_p_x_given_z.shape)
+	#print('critic.shape', critic.shape)
+	#print('prior_critic.shape', prior_critic.shape)
+	#print('name', name)
 
-	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/critic')
+	D_loss = tf.reduce_mean(D_prior - D_sample)
+	elbo = -D_loss + tf.reduce_mean(loglike) #* 784
+
+	#discriminator_loss = -tf.reduce_mean(prior_critic - critic)
+	#elbo_loss = -tf.reduce_mean(lg_p_x_given_z) + discriminator_loss	
+
+	#return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/critic')
+	return tf.identity(-elbo, name=name+'/elbo_like'), tf.identity(-D_loss, name=name+'/critic')
 
 def create(name='train'):
 	lg_p_x_given_z = tf_models.get_output(name + '/p_x_given_z/log_prob')

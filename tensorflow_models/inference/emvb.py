@@ -34,7 +34,7 @@ import tensorflow_models as tf_models
 def create(settings):
 	optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + settings['optimizer'])
 	train_elbo_loss = tf_models.get_loss('train/elbo_like')
-	train_discriminator_loss = tf_models.get_loss('train/critic')
+	train_critic_loss = tf_models.get_loss('train/critic')
 	step = tf_models.global_step()
 
 	# Divide variables into those we optimize for the ELBO and those for the adversarial training
@@ -42,6 +42,9 @@ def create(settings):
 
 	# TODO: Check this does not include batch norm variables
 	critic_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/critic')]
+
+	print('critic_vars\n', critic_vars)
+	print('elbo vars\n', elbo_vars)
 
 	# Add to the Graph operations that train the model.
 	if not settings['optimizer'] is 'adam':

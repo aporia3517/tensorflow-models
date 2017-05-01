@@ -54,11 +54,16 @@ def decoder_network(settings, code, is_training):
 
 # Discriminator used for adversarial training in logits
 def critic_network(settings, x, z, is_training):
-	x_layer = tf_models.layers.mlp(x, settings['critic_x_sizes'], scope='x_layer')
-	z_layer = tf_models.layers.mlp(z, settings['critic_z_sizes'], scope='z_layer')
+	#x_layer = tf_models.layers.mlp(x, settings['critic_x_sizes'], scope='x_layer')
+	#z_layer = tf_models.layers.mlp(z, settings['critic_z_sizes'], scope='z_layer')
+	#return tf_models.layers.mlp(
+	#					tf.concat([x_layer, z_layer], axis=1),
+	#					settings['critic_join_sizes'] + [1], scope='join_layer',
+	#					final_activation_fn=tf.identity)
 	return tf_models.layers.mlp(
-						tf.concat([x_layer, z_layer], axis=1),
-						settings['critic_join_sizes'] + [1], scope='join_layer',
+						tf.concat([x, z], axis=1),
+						settings['critic_sizes'] + [1],
+						scope='x_z_layers',
 						final_activation_fn=tf.identity)
 
 def create_encoder(settings, reuse=True):
@@ -77,7 +82,8 @@ def create_decoder(settings, reuse=True):
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_placeholder, is_training=False)
 		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
-		decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
+		#decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
+		decoder = tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
 	return decoder
 
 def create_probs(settings, inputs, is_training, reuse=False):
