@@ -68,14 +68,14 @@ class BaseTrainer(object):
 			# Check that checkpoint file exists
 			# TODO: Test this! I think it will fail on utils.settings.filepath because it doesn't have paths passed in
 			self.step = self._settings['resume_from']
-			snapshot_filepath = tf_models.utils.settings.filepath(self._settings) + '-' + str(self.step)
-			if not tf_models.utils.file.exists(snapshot_filepath + '.meta'):
+			snapshot_filepath = tf_models.settings.snapshots_filepath(self._settings, self._paths) + '-' + str(self.step)
+			if not tf_data.utils.file.exists(snapshot_filepath + '.meta'):
 				raise IOError('Snapshot at step {} does not exist'.format(self.step))
 			self._saver.restore(self.sess, snapshot_filepath)
 
 			# TODO: Version that omits prior noise for supervised learning
 			# TODO: Need to remove decoding samples in other parts too!
-			self.results = tf_models.utils.snapshot.load_results(snapshot_filepath)
+			self.results = tf_models.snapshot.load_results(snapshot_filepath)
 			print("Model restored from epoch {}".format(self._settings['resume_from']))
 
 	# Work out how many steps to do, and how many minibatches per step

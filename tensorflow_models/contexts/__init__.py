@@ -84,7 +84,7 @@ class GraphContext(object):
 
 class SessionContext(object):
 	def __init__(self):
-		self.saver = tf.train.Saver()
+		self.saver = tf.train.Saver(max_to_keep=10000)
 		tf.add_to_collection(tf.GraphKeys.SAVERS, self.saver)
 		self._init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 		self._coord = None

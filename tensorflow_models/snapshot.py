@@ -27,7 +27,9 @@ from __future__ import print_function
 import six
 import numpy as np
 from six.moves import cPickle as pickle
-import utils.file
+
+import tensorflow_datasets as tf_data
+import tensorflow_datasets.utils.file
 
 # Save results so we can plot them later and resume from snapshots
 def save_results(filepath, epoch, results):
@@ -38,7 +40,7 @@ def save_results(filepath, epoch, results):
 def load_results(filepath):
 	results_filepath = filepath + '.results'
 	print(results_filepath)
-	if not utils.file.exists(results_filepath):
+	if not tf_data.utils.file.exists(results_filepath):
 		raise IOError('Results file at epoch {} does not exist'.format(epoch))
 
 	with open(results_filepath, 'rb') as f:
