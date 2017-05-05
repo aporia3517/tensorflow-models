@@ -48,14 +48,23 @@ class GraphKeys(object):
 	INFERENCE = 'inference'
 
 # Return the HWC shape of a sample image after transformations have been applied!
-def sample_shape(settings):
+def unflattened_sample_shape(settings):
 	shape = list(tf_data.sample_shape(settings['dataset']))
-	if 'transformations' in settings:
+	if 'transformations' in settings and settings['transformations']:
 		for k, v in six.viewitems(settings['transformations']):
 			if k == 'resize':
 				shape[0:2] = v
 			# TODO: Extra case once added cropping
 			# elif k == 'crop':
+
+	return shape
+
+def sample_shape(settings):
+	shape = unflattened_sample_shape(settings)
+	
+	if settings['transformations'] and 'flatten' in settings['transformations']:
+		shape = [np.prod(shape)]
+
 	return shape
 
 # Return the scale of samples (which is [0, 1] unless transformations have been applied)
@@ -69,10 +78,10 @@ def sample_scale(settings):
 
 # Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
 def unflattened_batchshape(settings):
-	return [settings['batch_size']] + sample_shape(settings)
+	return [settings['batch_size']] + unflattened_sample_shape(settings)
 
 def flattened_shape(settings):
-	return [int(np.prod(sample_shape(settings)))]
+	return [int(np.prod(unflattened_sample_shape(settings)))]
 
 def flattened_batchshape(settings):
 	return [settings['batch_size']] + flattened_shape(settings)
@@ -107,9 +116,12 @@ def host():
 def device(settings):
 	return tf.device("/" + settings['device'])
 
-def create(settings):
+def create(settings, placeholders=False):
 	with host():
-		input_ops(settings)
+		if not placeholders:
+			input_ops(settings)
+		else:
+			input_placeholders(settings)
 
 	with device(settings):
 		model_ops(settings)
@@ -147,6 +159,34 @@ def input_ops(settings):
 		tf.add_to_collection(GraphKeys.INPUTS, x)
 
 	return train_samples, test_samples
+
+def input_placeholders(settings):
+	#count_train = settings['count'][tf_data.Subset.TRAIN]
+	#count_test = settings['count'][tf_data.Subset.TEST]
+
+	with tf.name_scope('inputs/train'):
+		#print('sample_shape', sample_shape(settings), unflattened_sample_shape(settings))
+		
+		train = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([None], sample_shape(settings))), name='samples')
+		if settings['labels']:
+			train = [train, tf.placeholder(dtype=tf.float32, shape=[None, 1], name='labels')]
+
+	for x in wrap(train):
+		tf.add_to_collection(GraphKeys.INPUTS, x)
+
+	with tf.name_scope('inputs/test'):
+		test = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([None], sample_shape(settings))), name='samples')
+		if settings['labels']:
+			test = [test, tf.placeholder(dtype=tf.float32, shape=[None, 1], name='labels')]
+
+	for x in wrap(test):
+		tf.add_to_collection(GraphKeys.INPUTS, x)
+
+	#print('train.shape', train.shape, 'test.shape', test.shape)
+	#print('train', train, 'test', test)
+	#raise Exception()
+
+	return train, test
 
 def samples(subset=tf_data.Subset.TRAIN):
 	inputs = tf.get_collection(GraphKeys.INPUTS)
