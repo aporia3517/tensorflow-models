@@ -86,7 +86,6 @@ class SessionContext(object):
 	def __init__(self):
 		self.saver = tf.train.Saver(max_to_keep=10000)
 		tf.add_to_collection(tf.GraphKeys.SAVERS, self.saver)
-		self._init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 		self._coord = None
 
 		# Detect if there are queue runners and create necessary data structures if so
@@ -98,6 +97,7 @@ class SessionContext(object):
 
 	def __enter__(self):
 		# Start the Tensorflow session
+		self._init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 		self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 		self.sess.__enter__()
 		self.sess.run(self._init_op)

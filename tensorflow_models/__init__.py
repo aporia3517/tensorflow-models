@@ -47,25 +47,7 @@ class GraphKeys(object):
 	LOSSES = 'losses'
 	INFERENCE = 'inference'
 
-# Return the HWC shape of a sample image after transformations have been applied!
-def unflattened_sample_shape(settings):
-	shape = list(tf_data.sample_shape(settings['dataset']))
-	if 'transformations' in settings and settings['transformations']:
-		for k, v in six.viewitems(settings['transformations']):
-			if k == 'resize':
-				shape[0:2] = v
-			# TODO: Extra case once added cropping
-			# elif k == 'crop':
 
-	return shape
-
-def sample_shape(settings):
-	shape = unflattened_sample_shape(settings)
-	
-	if settings['transformations'] and 'flatten' in settings['transformations']:
-		shape = [np.prod(shape)]
-
-	return shape
 
 # Return the scale of samples (which is [0, 1] unless transformations have been applied)
 def sample_scale(settings):
@@ -78,10 +60,10 @@ def sample_scale(settings):
 
 # Gets the shape of the tensor holding an unflattened minibatch => (batch x channels x height x width)
 def unflattened_batchshape(settings):
-	return [settings['batch_size']] + unflattened_sample_shape(settings)
+	return [settings['batch_size']] + tf_data.unflattened_sample_shape(settings)
 
 def flattened_shape(settings):
-	return [int(np.prod(unflattened_sample_shape(settings)))]
+	return [int(np.prod(tf_data.unflattened_sample_shape(settings)))]
 
 def flattened_batchshape(settings):
 	return [settings['batch_size']] + flattened_shape(settings)
@@ -167,7 +149,7 @@ def input_placeholders(settings):
 	with tf.name_scope('inputs/train'):
 		#print('sample_shape', sample_shape(settings), unflattened_sample_shape(settings))
 		
-		train = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([None], sample_shape(settings))), name='samples')
+		train = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([None], tf_data.sample_shape(settings))), name='samples')
 		if settings['labels']:
 			train = [train, tf.placeholder(dtype=tf.float32, shape=[None, 1], name='labels')]
 
@@ -175,7 +157,7 @@ def input_placeholders(settings):
 		tf.add_to_collection(GraphKeys.INPUTS, x)
 
 	with tf.name_scope('inputs/test'):
-		test = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([None], sample_shape(settings))), name='samples')
+		test = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([None], tf_data.sample_shape(settings))), name='samples')
 		if settings['labels']:
 			test = [test, tf.placeholder(dtype=tf.float32, shape=[None, 1], name='labels')]
 
@@ -217,6 +199,20 @@ def get_prior():
 		return ops[0]
 	else:
 		raise ValueError('No prior sampling operation exists')
+
+def lg_likelihood(settings):
+	model = importlib.import_module('tensorflow_models.models.' + settings['model'])
+	if 'lg_likelihood' in dir(model):
+		return model.lg_likelihood
+	else:
+		raise ValueError('No log-likelihood function exists')
+
+def lg_prior(settings):
+	model = importlib.import_module('tensorflow_models.models.' + settings['model'])
+	if 'lg_prior' in dir(model):
+		return model.lg_prior
+	else:
+		raise ValueError('No log-prior function exists')
 
 def get_decoder():
 	ops = tf.get_collection(GraphKeys.DECODERS)

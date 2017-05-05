@@ -94,3 +94,14 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	lg_q_z_given_x = tf.identity(dist_z_given_x.log_prob(z_sample), name='q_z_given_x/log_prob')
 
 	return lg_p_x_given_z, lg_p_z, lg_q_z_given_x
+
+def lg_likelihood(x, z, settings, reuse=True, is_training=False):
+	with tf.variable_scope('model'):
+		with tf.variable_scope('decoder', reuse=reuse):
+			logits_x = decoder_network(settings, z, is_training=is_training)
+	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
+	return tf.reduce_sum(dist_x_given_z.log_prob(x), 1)
+
+def lg_prior(z, reuse=True, is_training=False):
+	dist_prior = tf_models.standard_normal(z.shape)
+	return dist_prior.log_prob(z)
