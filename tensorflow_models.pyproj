@@ -20,6 +20,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="contexts\__init__.py" />
+    <Compile Include="evaluation\ais.py" />
+    <Compile Include="evaluation\hmc.py" />
+    <Compile Include="evaluation\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="inference\avb.py" />
     <Compile Include="inference\emvb.py">
       <SubType>Code</SubType>
@@ -69,6 +74,9 @@
     <Compile Include="settings.py" />
     <Compile Include="snapshot.py" />
     <Compile Include="timer.py" />
+    <Compile Include="trainers\ais.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="trainers\avb.py" />
     <Compile Include="trainers\emvb.py">
       <SubType>Code</SubType>
@@ -87,6 +95,7 @@
     <Folder Include="layers" />
     <Folder Include="losses" />
     <Folder Include="models" />
+    <Folder Include="evaluation\" />
     <Folder Include="optimizers" />
     <Folder Include="trainers\" />
   </ItemGroup>
