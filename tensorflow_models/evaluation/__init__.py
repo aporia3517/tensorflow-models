@@ -23,3 +23,93 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import tensorflow as tf
+import tensorflow_datasets as tf_data
+import tensorflow_models as tf_models
+
+class BaseEvaluator(object):
+	def __init__(self, settings, paths, context):
+		self._settings = settings
+		self._context = context
+		self.sess = self._context.sess
+		self._paths = paths
+		self._saver = tf.get_collection(tf.GraphKeys.SAVERS)[0]
+		self.train_batches, self.test_batches = tf_models.count_batches(self._settings)
+		self._initialize_counters()
+		self._decoder = tf_models.get_decoder()
+		self._z_placeholder = tf_models.codes_placeholder()
+
+		if not self._decoder is None:
+			assert(settings['batch_size'] >= settings['sample_size'])
+		
+	def __enter__(self):
+		self._resume()
+		self.initialize_hook()
+		return self
+
+	def __exit__(self, *args):
+		self.finalize_hook()
+
+	# Initialize results, loading results/parameters from snapshot if requested
+	def _resume(self):
+		if self._settings['resume_from'] is None:
+			self.step = 0
+			self.results = self.initialize_results_hook()
+			if not self._decoder is None:
+				self.results['prior_noise'] = self.sess.run(tf_models.get_prior())
+		else:
+			# Check that checkpoint file exists
+			# TODO: Test this! I think it will fail on utils.settings.filepath because it doesn't have paths passed in
+			self.step = self._settings['resume_from']
+			snapshot_filepath = tf_models.settings.snapshots_filepath(self._settings, self._paths) + '-' + str(self.step)
+			if not tf_data.utils.file.exists(snapshot_filepath + '.meta'):
+				raise IOError('Snapshot at step {} does not exist'.format(self.step))
+			self._saver.restore(self.sess, snapshot_filepath)
+
+			# TODO: Version that omits prior noise for supervised learning
+			# TODO: Need to remove decoding samples in other parts too!
+			self.results = tf_models.snapshot.load_results(snapshot_filepath)
+			print("Model restored from epoch {}".format(self._settings['resume_from']))
+
+	# Work out how many steps to do, and how many minibatches per step
+	def _initialize_counters(self):
+		if not self._settings['batches_per_step'] is None:
+			self._batches_per_step = self._settings['batches_per_step']
+		else:
+			self._batches_per_step = self.train_batches
+		if not self._settings['count_steps'] is None:
+			self._count_steps = self._settings['count_steps']
+		elif not self._settings['count_epochs'] is None:
+			# self.batches_per_step => Batches per step
+			# self.train_batches => Batches per epoch
+			self._count_steps = self._settings['count_epochs'] * float(self.train_batches) / self._batches_per_step
+
+	"""def run(self):
+		while self.running():
+			self.before_step_hook()
+			self.step_hook()
+			self.step += 1
+			self.after_step_hook()
+			self._save_snapshot()"""
+
+	# Convert step number into epoch number
+	def epoch(self):
+		return self.step * float(self._batches_per_step) / self.train_batches
+
+	#def running(self):
+	#	return self.step < self._count_steps and self._context.running()
+
+	# Abtract methods
+	def initialize_hook(self):
+		raise NotImplementedError('Initialization hook has not been implemented')
+	def before_step_hook(self):
+		raise NotImplementedError('Before step hook has not been implemented')
+	def step_hook(self):
+		raise NotImplementedError('Step hook has not been implemented')
+	def after_step_hook(self):
+		raise NotImplementedError('After step hook has not been implemented')
+	def finalize_hook(self):
+		raise NotImplementedError('Finalization hook has not been implemented')
+	def initialize_results_hook(self):
+		raise NotImplementedError('Results initialization hook has not been implemented')
