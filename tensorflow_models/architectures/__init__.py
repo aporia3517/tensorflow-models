@@ -90,4 +90,10 @@ def gan_2v_discriminator_mlp(settings, x, z, is_training):
 def avb_2v_discriminator_mlp(settings, x, z, is_training):
 	architecture = settings['architecture']
 	inputs = tf.concat([x, z], axis=1)
-	return tf_models.layers.mlp(inputs, architecture['discriminator_sizes'] + [1], final_activation_fn=tf.nn.identity)
+	return tf_models.layers.mlp(inputs, architecture['discriminator_sizes'] + [1], final_activation_fn=tf.identity)
+
+# TODO: Refactoring
+def wgan_2v_critic_mlp(settings, x, z, is_training):
+	architecture = settings['architecture']
+	inputs = tf.concat([x, z], axis=1)
+	return tf_models.layers.mlp(inputs, architecture['critic_sizes'] + [1], final_activation_fn=tf.identity)

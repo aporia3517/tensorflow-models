@@ -43,8 +43,8 @@ def create(settings):
 	# TODO: Check this does not include batch norm variables
 	critic_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/critic')]
 
-	print('critic_vars\n', critic_vars)
-	print('elbo vars\n', elbo_vars)
+	#print('critic_vars\n', critic_vars)
+	#print('elbo vars\n', elbo_vars)
 
 	# Add to the Graph operations that train the model.
 	if not settings['optimizer'] is 'adam':
