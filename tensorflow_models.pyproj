@@ -19,6 +19,7 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="architectures\__init__.py" />
     <Compile Include="contexts\__init__.py" />
     <Compile Include="evaluation\ais.py" />
     <Compile Include="evaluation\hmc.py" />
@@ -74,9 +75,6 @@
     <Compile Include="settings.py" />
     <Compile Include="snapshot.py" />
     <Compile Include="timer.py" />
-    <Compile Include="trainers\ais.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="trainers\avb.py" />
     <Compile Include="trainers\emvb.py">
       <SubType>Code</SubType>
@@ -90,6 +88,7 @@
     <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="architectures\" />
     <Folder Include="contexts" />
     <Folder Include="inference" />
     <Folder Include="layers" />

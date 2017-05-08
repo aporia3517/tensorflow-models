@@ -40,6 +40,8 @@ def create_prior(settings):
 	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), name='p_z/sample')
 
 def create_decoder(settings, reuse=True):
+	generator_network = settings['architecture']['generator_network']
+
 	z_placeholder = tf_models.codes_placeholder()
 	assert(not z_placeholder is None)
 
@@ -47,13 +49,10 @@ def create_decoder(settings, reuse=True):
 		decoder = tf.identity(generator_network(settings, z_placeholder, is_training=False), name='p_x/sample')
 	return decoder
 
-def generator_network(settings, code, is_training):
-	return tf_models.layers.mlp(code, settings['generator_sizes'] + tf_models.flattened_shape(settings), final_activation_fn=tf.nn.sigmoid)
-
-def discriminator_network(settings, inputs, is_training):
-	return tf_models.layers.mlp(inputs, settings['discriminator_sizes'] + [1], final_activation_fn=tf.nn.sigmoid)
-
 def create_probs(settings, inputs, is_training, reuse=False):
+	generator_network = settings['architecture']['generator_network']
+	discriminator_network = settings['architecture']['discriminator_network']
+
 	eps = tf.random_uniform(tf_models.latentshape(settings), minval=-1., maxval=1., dtype=tf.float32)
 
 	with tf.variable_scope('generator', reuse=reuse):

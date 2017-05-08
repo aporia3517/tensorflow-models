@@ -26,7 +26,6 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 
 import tensorflow_models as tf_models
 
@@ -39,18 +38,9 @@ def create_prior(settings):
 	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
 	return tf.identity(dist_prior.sample(), name='p_z/sample')
 
-# Encoder: q(z | x)
-# Returns the parameters for the normal distribution on z given x
-def encoder_network(settings, inputs, is_training):
-	#with tf.variable_scope('q_z_given_x'):
-	return tf_models.layers.gaussian_parameters_mlp(inputs, settings['encoder_sizes'] + [settings['latent_dimension']])
-
-# Decoder: p(x | z)
-# Returns parameters for bernoulli distribution on x given z
-def decoder_network(settings, code, is_training):
-	return tf_models.layers.bernoulli_parameters_mlp(code, settings['decoder_sizes'] + tf_models.flattened_shape(settings))
-
 def create_encoder(settings, reuse=True):
+	encoder_network = settings['architecture']['encoder_network']
+
 	x_placeholder = tf_models.samples_placeholder()
 	assert(not x_placeholder is None)
 
@@ -61,6 +51,8 @@ def create_encoder(settings, reuse=True):
 	return encoder
 
 def create_decoder(settings, reuse=True):
+	decoder_network = settings['architecture']['decoder_network']
+
 	z_placeholder = tf_models.codes_placeholder()
 	assert(not z_placeholder is None)
 
@@ -71,6 +63,9 @@ def create_decoder(settings, reuse=True):
 	return decoder
 
 def create_probs(settings, inputs, is_training, reuse=False):
+	encoder_network = settings['architecture']['encoder_network']
+	decoder_network = settings['architecture']['decoder_network']
+	\
 	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
 
 	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space

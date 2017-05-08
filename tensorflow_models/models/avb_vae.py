@@ -38,30 +38,9 @@ def create_prior(settings):
 	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
 	return tf.identity(dist_prior.sample(), name='p_z/sample')
 
-# Black-box encoder: q(z | x, eps)
-# Returns a sample from z given x and epsilon
-def encoder_network(settings, inputs, eps, is_training):
-	#with tf.variable_scope('q_z_given_x'):
-	return tf_models.layers.mlp(
-						tf.concat([inputs, eps], axis=1), 
-						settings['encoder_sizes'] + [settings['latent_dimension']],
-						final_activation_fn=tf.identity)
-
-# Decoder: p(x | z)
-# Returns parameters for bernoulli distribution on x given z
-def decoder_network(settings, code, is_training):
-	return tf_models.layers.bernoulli_parameters_mlp(code, settings['decoder_sizes'] + tf_models.flattened_shape(settings))
-
-# Discriminator used for adversarial training in logits
-def discriminator_network(settings, x, z, is_training):
-	x_layer = tf_models.layers.mlp(x, settings['discriminator_x_sizes'], scope='x_layer')
-	z_layer = tf_models.layers.mlp(z, settings['discriminator_z_sizes'], scope='z_layer')
-	return tf_models.layers.mlp(
-						tf.concat([x_layer, z_layer], axis=1),
-						settings['discriminator_join_sizes'] + [1], scope='join_layer',
-						final_activation_fn=tf.identity)
-
 def create_encoder(settings, reuse=True):
+	encoder_network = settings['architecture']['encoder_network']
+
 	x_placeholder = tf_models.samples_placeholder()
 	assert(not x_placeholder is None)
 
@@ -71,6 +50,8 @@ def create_encoder(settings, reuse=True):
 	return encoder
 
 def create_decoder(settings, reuse=True):
+	decoder_network = settings['architecture']['decoder_network']
+
 	z_placeholder = tf_models.codes_placeholder()
 	assert(not z_placeholder is None)
 
@@ -81,6 +62,10 @@ def create_decoder(settings, reuse=True):
 	return decoder
 
 def create_probs(settings, inputs, is_training, reuse=False):
+	encoder_network = settings['architecture']['encoder_network']
+	decoder_network = settings['architecture']['decoder_network']
+	discriminator_network = settings['architecture']['discriminator_network']
+
 	# The noise is distributed i.i.d. N(0, 1)
 	noise = tf.random_normal(tf_models.noiseshape(settings), 0, 1, dtype=tf.float32)
 

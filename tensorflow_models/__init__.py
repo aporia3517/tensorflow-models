@@ -47,8 +47,6 @@ class GraphKeys(object):
 	LOSSES = 'losses'
 	INFERENCE = 'inference'
 
-
-
 # Return the scale of samples (which is [0, 1] unless transformations have been applied)
 def sample_scale(settings):
 	scale = [0, 1]
