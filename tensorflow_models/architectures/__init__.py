@@ -49,6 +49,10 @@ def gan_discriminator_mlp(settings, inputs, is_training):
 	architecture = settings['architecture']
 	return tf_models.layers.mlp(inputs, architecture['discriminator_sizes'] + [1], final_activation_fn=tf.nn.sigmoid)
 
+def wgan_critic_mlp(settings, inputs, is_training):
+	architecture = settings['architecture']
+	return tf_models.layers.mlp(inputs, architecture['critic_sizes'] + [1], final_activation_fn=tf.identity)
+
 # Black-box encoder: q(z | x, eps)
 # Returns a sample from z given x and epsilon
 def real_generator_mlp(settings, inputs, eps, is_training):
@@ -62,12 +66,20 @@ def real_generator_mlp(settings, inputs, eps, is_training):
 # Transforms each input separately before combining 
 def split_2v_discriminator_mlp(settings, x, z, is_training):
 	architecture = settings['architecture']
-
 	x_layer = tf_models.layers.mlp(x, architecture['discriminator_x_sizes'], scope='x_layer')
 	z_layer = tf_models.layers.mlp(z, architecture['discriminator_z_sizes'], scope='z_layer')
 	return tf_models.layers.mlp(
 						tf.concat([x_layer, z_layer], axis=1),
 						architecture['discriminator_join_sizes'] + [1], scope='join_layer',
+						final_activation_fn=tf.identity)
+
+def split_2v_critic_mlp(settings, x, z, is_training):
+	architecture = settings['architecture']
+	x_layer = tf_models.layers.mlp(x, architecture['critic_x_sizes'], scope='x_layer')
+	z_layer = tf_models.layers.mlp(z, architecture['critic_z_sizes'], scope='z_layer')
+	return tf_models.layers.mlp(
+						tf.concat([x_layer, z_layer], axis=1),
+						architecture['critic_join_sizes'] + [1], scope='join_layer',
 						final_activation_fn=tf.identity)
 
 def gan_2v_discriminator_mlp(settings, x, z, is_training):
