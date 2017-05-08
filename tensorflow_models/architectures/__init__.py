@@ -24,7 +24,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 import tensorflow_models as tf_models
 
 # Encoder: q(z | x)
@@ -128,7 +130,17 @@ def gan_generator_cnn(settings, code, is_training):
 	final_filter_count = gf_dim * params['increase_factor']**(params['conv_layers']-1)
 
 	# TODO: Made the following automated based on initial_size, layer_count etc.
-	with slim.arg_scope([slim.conv2d_transposed, slim.fully_connected],
+	with slim.arg_scope([slim.fully_connected],
+                      activation_fn=activation_fn,
+                      normalizer_fn=normalizer_fn,
+											normalizer_params=normalizer_params,
+											):
+		#print('DC-GAN generator')
+		h = slim.fully_connected(code, initial_size[0]*initial_size[1]*final_filter_count, scope='projection')
+		h = tf.reshape(h, [-1, initial_size[0], initial_size[1], final_filter_count])
+		#print('h.shape', h.shape)
+
+	with slim.arg_scope([slim.conv2d_transpose],
                       activation_fn=activation_fn,
                       normalizer_fn=normalizer_fn,
 											normalizer_params=normalizer_params,
@@ -136,23 +148,18 @@ def gan_generator_cnn(settings, code, is_training):
 											stride=2,
 											padding='SAME'
 											):
-		print('DC-GAN generator')
-		h = slim.fully_connected(code, initial_size[0]*initial_size[1]*final_filter_count, scope='projection')
-		h = tf.reshape(h, [-1, initial_size[0], initial_size[1], final_filter_count])
-		print('h.shape', h.shape)
-
 		dims = list(reversed(list(gf_dim*(params['increase_factor']**np.arange(params['conv_layers'] - 1)))))
-		print('dims', dims)
+		#print('dims', dims)
 		
-		h = slim.stack(h, slim.conv2d_transposed, dims, scope='deconvs')
-		print('h.shape', h.shape)
+		h = slim.stack(h, slim.conv2d_transpose, dims, scope='deconvs')
+		#print('h.shape', h.shape)
 		#h = slim.conv2d_transpose(h, gf_dim*2, scope='g2')
 		#h = slim.conv2d_transpose(h, gf_dim, scope='g3')
 
 		h = slim.conv2d_transpose(h, batchshape[3], activation_fn=output_fn, normalizer_fn=None, normalizer_params=None, scope='final_deconv')
-		print('h.shape', h.shape)
+		#print('h.shape', h.shape)
 		h = tf.reshape(h, batchshape)
-		print('h.shape', h.shape)
+		#print('h.shape', h.shape)
 	return h
 
 # DC-GAN discriminator
@@ -177,8 +184,8 @@ def gan_discriminator_cnn(settings, inputs, is_training):
 	#h = tf.reshape(inputs, [100, 28, 28, 1])
 	h = inputs
 
-	print('DC-GAN generator')
-	print('h.shape', h.shape)
+	#print('DC-GAN discriminator')
+	#print('h.shape', h.shape)
 
 	df_dim = params['filter_count']
 	initial_size = params['initial_size']
@@ -192,15 +199,15 @@ def gan_discriminator_cnn(settings, inputs, is_training):
 											padding='SAME'
 											):
 		dims = list(df_dim*(params['increase_factor']**np.arange(params['conv_layers'])))
-		print('dims', dims)
+		#print('dims', dims)
 
 		h = slim.stack(h, slim.conv2d, dims, scope='convs')
-		print('h.shape', h.shape)
+		#print('h.shape', h.shape)
 
 		h = tf.reshape(h, [100, -1])
-		print('h.shape', h.shape)
+		#print('h.shape', h.shape)
 
-	h = slim.fully_connected(h, 1, activation_fn=tf.nn.sigmoid, scope='output')
-	print('h.shape', h.shape)
+	h = slim.fully_connected(h, 1, activation_fn=tf.nn.sigmoid, scope='output') # normalizer_fn=normalizer_fn, normalizer_params=normalizer_params,
+	#print('h.shape', h.shape)
 
 	return h
