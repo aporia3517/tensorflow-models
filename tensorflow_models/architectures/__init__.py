@@ -97,3 +97,56 @@ def wgan_2v_critic_mlp(settings, x, z, is_training):
 	architecture = settings['architecture']
 	inputs = tf.concat([x, z], axis=1)
 	return tf_models.layers.mlp(inputs, architecture['critic_sizes'] + [1], final_activation_fn=tf.identity)
+
+# DC-GAN decoder. Uses transposed (fractionally strided) convolutions
+def gan_generator_cnn(settings, code, is_training):
+	architecture = settings['architecture']
+	params = architecture['generator_params']
+	batchshape = tf_models.batchshape(settings)
+	assert len(batchshape) == 4
+
+	# Extract params and set defaults
+	if 'batch_norm' in params and params['batch_norm']:
+		normalizer_fn = slim.batch_norm
+		normalizer_params = {'scale':True, 'is_training':is_training}
+	else:
+		normalizer_fn = None
+		normalizer_params = None
+
+	if 'activation_fn' in params:
+		activation_fn = params['activation_fn']
+	else:
+		activation_fn = tf.nn.relu
+
+	if 'output_fn' in params:
+		output_fn = params['output_fn']
+	else:
+		output_fn = tf.nn.sigmoid
+
+	gf_dim = params['filter_count']
+
+	# *** CONTINUE FROM HERE 8/5 ***
+	# TODO: Made the following automated based on initial_size, layer_count etc.
+	h = slim.fully_connected(code, gf_dim*4*4*4, scope='projection', activation_fn=activation_fn, normalizer_fn=normalizer_fn, normalizer_params=normalizer_params)
+	h = tf.reshape(h, [-1, 4, 4, gf_dim*4])
+
+	h = slim.conv2d_transpose(h, gf_dim*2, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=activation_fn, scope='g2', normalizer_fn=normalizer_fn, normalizer_params=normalizer_params)
+	h = slim.conv2d_transpose(h, gf_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=activation_fn, scope='g3', normalizer_fn=normalizer_fn, normalizer_params=normalizer_params)
+
+	# Replace with number of channels
+	h = slim.conv2d_transpose(h, batchshape[3], kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=output_fn, scope='g4')
+	h = tf.reshape(h, batchshape)
+	return h
+
+# DC-GAN discriminator
+def gan_discriminator_cnn(settings, inputs, is_training):
+
+	#h = tf.reshape(inputs, [100, 28, 28, 1])
+	h = inputs
+	df_dim = 32
+	h = slim.conv2d(h, df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h1', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training})
+	h = slim.conv2d(h, 2*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h2', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training})
+	h = slim.conv2d(h, 4*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.elu, scope='h3', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training})
+	h = tf.reshape(h, [100, -1])
+	h = slim.fully_connected(h, 1, activation_fn=tf.nn.sigmoid, scope='h4')
+	return h
