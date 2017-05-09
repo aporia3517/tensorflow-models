@@ -80,6 +80,10 @@ class Trainer(BaseTrainer):
 			test_elbo = self.results['elbo_test'][-1]
 			test_critic = self.results['critic_test'][-1]
 
+		#print('*** DEBUG ***')
+		#print(test_elbo.shape)
+		#print(test_critic.shape)
+
 		print('epoch {:.3f}, test elbo = {:.2f}, test disc. = {:.2f}'.format(self.epoch(), test_elbo, test_critic))
 
 	def step_hook(self):
