@@ -52,9 +52,6 @@
     </Compile>
     <Compile Include="losses\__init__.py" />
     <Compile Include="models\avb_vae.py" />
-    <Compile Include="models\dcgan.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="models\emvb_vae.py">
       <SubType>Code</SubType>
     </Compile>

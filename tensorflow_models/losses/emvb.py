@@ -33,7 +33,7 @@ import tensorflow_models as tf_models
 # lg_p_x_given_z ~ batch_size x 784
 # adversary ~ ?
 # prior_adversary ~ ?
-def loss(loglike, D_sample, D_prior, name):	
+def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name):	
 	# Eq (3.9)
 	# NOTE: Take negative since we are minimizing
 
@@ -42,18 +42,33 @@ def loss(loglike, D_sample, D_prior, name):
 	#print('prior_critic.shape', prior_critic.shape)
 	#print('name', name)
 
-	D_loss = tf.reduce_mean(D_prior - D_sample)
-	elbo = -D_loss + tf.reduce_mean(loglike) #* 784
+	# TODO: Flatten X? Or flatten grad2?
+	lam = 10
+	grad = tf.gradients(D_inter, [Z_inter])
+	grad2 = tf.gradients(D_inter, [X])
+	grad_norm = tf.sqrt(tf.reduce_sum((tf.concat([grad[0], grad2[0]], axis=1))**2, axis=1))
+	grad_pen = lam * tf.reduce_mean(grad_norm - 1.)**2
+
+	minus_EM = tf.reduce_mean(D_fake) - tf.reduce_mean(D_real)
+	D_loss = minus_EM + grad_pen
+
+	# TODO: Be able to change scaling factor in settings file!
+	regu_term = -tf.sqrt(tf.abs(minus_EM)*0.1)
+	elbo_loss = -loglike - regu_term
 
 	#discriminator_loss = -tf.reduce_mean(prior_critic - critic)
 	#elbo_loss = -tf.reduce_mean(lg_p_x_given_z) + discriminator_loss	
 
 	#return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/critic')
-	return tf.identity(-elbo, name=name+'/elbo_like'), tf.identity(-D_loss, name=name+'/critic')
+	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(D_loss, name=name+'/critic')
 
 def create(name='train'):
 	lg_p_x_given_z = tf_models.get_output(name + '/p_x_given_z/log_prob')
 	critic = tf_models.get_output(name + '/critic/generator')
 	prior_critic = tf_models.get_output(name + '/critic/prior')
 
-	return loss(lg_p_x_given_z, critic, prior_critic, name=name)
+	inter_critic = tf_models.get_output(name + '/critic/inter')
+	z_inter = tf_models.get_output(name + '/z/interpolated')
+	x = tf_models.get_output(name + '/x')
+
+	return loss(lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, x, name=name)

@@ -39,7 +39,7 @@ def training(loss, learning_rate=0.001, var_list=None, step=None, clip_grads=Fal
 	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 
 	# DEBUG
-	#print('update_ops', update_ops)
+	print('update_ops', update_ops)
 
 	with tf.control_dependencies(update_ops):
 		if step is None:

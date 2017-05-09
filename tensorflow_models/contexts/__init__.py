@@ -82,8 +82,9 @@ class GraphContext(object):
 			self._device_context.__exit__(*args)
 		self._graph_context.__exit__(*args)
 
-class SessionContext(object):
+class SessionContext(object, settings):
 	def __init__(self):
+		self._settings = settings
 		self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES), max_to_keep=10000)
 		tf.add_to_collection(tf.GraphKeys.SAVERS, self.saver)
 		self._coord = None
@@ -97,8 +98,17 @@ class SessionContext(object):
 
 	def __enter__(self):
 		# Start the Tensorflow session
+		config = tf.ConfigProto()
+		config.allow_soft_placement = True
+
+		if self._settings['device'].startswith('gpu'):
+			config.gpu_options.visible_device_list = self._settings['device'][-1]
+			config.gpu_options.allow_growth = True
+
+			print('Only using GPU {}'.format(config.gpu_options.visible_device_list))
+
 		self._init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-		self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+		self.sess = tf.Session(config=tf.config)
 		self.sess.__enter__()
 		self.sess.run(self._init_op)
 

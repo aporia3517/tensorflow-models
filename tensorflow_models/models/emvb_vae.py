@@ -38,7 +38,6 @@ def create_prior(settings):
 	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
 	return tf.identity(dist_prior.sample(), name='p_z/sample')
 
-
 def create_encoder(settings, reuse=True):
 	encoder_network = settings['architecture']['encoder_network']
 
@@ -86,10 +85,17 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	# Log likelihood of reconstructed inputs
 	lg_p_x_given_z = tf.identity(tf.reduce_sum(dist_x_given_z.log_prob(inputs), 1), name='p_x_given_z/log_prob')
 
+	# Form interpolated variable
+	eps = tf.random_uniform([settings['batch_size'], 1], minval=0., maxval=1.)
+	z_inter = tf.identity(eps*z_prior + (1. - eps)*z_sample, name='z/interpolated')
+
 	# Discriminator T(x, z)
 	with tf.variable_scope('critic', reuse=reuse):
 		critic = tf.identity(critic_network(settings, inputs, z_sample, is_training=is_training), name='generator')
 		tf.get_variable_scope().reuse_variables()
 		prior_critic = tf.identity(critic_network(settings, inputs, z_prior, is_training=is_training), name='prior')
+		inter_critic = tf.identity(critic_network(settings, inputs, z_inter, is_training=is_training), name='inter')
 
-	return lg_p_x_given_z, critic, prior_critic
+	x = tf.identity(inputs, name='x')
+
+	return lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, x
