@@ -82,8 +82,8 @@ class GraphContext(object):
 			self._device_context.__exit__(*args)
 		self._graph_context.__exit__(*args)
 
-class SessionContext(object, settings):
-	def __init__(self):
+class SessionContext(object):
+	def __init__(self, settings):
 		self._settings = settings
 		self.saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES), max_to_keep=10000)
 		tf.add_to_collection(tf.GraphKeys.SAVERS, self.saver)
