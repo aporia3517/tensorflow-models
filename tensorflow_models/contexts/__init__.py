@@ -108,7 +108,7 @@ class SessionContext(object):
 			print('Only using GPU {}'.format(config.gpu_options.visible_device_list))
 
 		self._init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-		self.sess = tf.Session(config=tf.config)
+		self.sess = tf.Session(config=config)
 		self.sess.__enter__()
 		self.sess.run(self._init_op)
 
