@@ -54,9 +54,4 @@ def create(settings):
 		elbo_train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_like', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 		critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['adversary_rate'], var_list=critic_vars, name='critic', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 
-	if not settings['weight_clip'] is None:
-		print('Clipping weights')
-		with tf.control_dependencies([critic_train_op]):
-			critic_train_op = tf.group(*[p.assign(tf.clip_by_value(p, -settings['weight_clip'], settings['weight_clip'])) for p in critic_vars], name='critic')
-
 	return elbo_train_op, critic_train_op

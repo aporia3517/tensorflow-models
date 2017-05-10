@@ -98,4 +98,6 @@ def create_probs(settings, inputs, is_training, reuse=False):
 
 	x = tf.identity(inputs, name='x')
 
-	return lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, x
+	#print('inputs.name', inputs.name)
+
+	return lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, inputs #x
