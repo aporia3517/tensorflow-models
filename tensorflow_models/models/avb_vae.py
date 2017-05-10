@@ -57,9 +57,10 @@ def create_decoder(settings, reuse=True):
 
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_placeholder, is_training=False)
-		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
-		decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
-	return decoder
+		#dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
+		#decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
+	#return decoder
+	return tf.nn.sigmoid(logits_x)
 
 def create_probs(settings, inputs, is_training, reuse=False):
 	encoder_network = settings['architecture']['encoder_network']
@@ -79,10 +80,12 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_sample, is_training=is_training)
-	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
+	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x))
 
 	# Log likelihood of reconstructed inputs
-	lg_p_x_given_z = tf.identity(tf.reduce_sum(dist_x_given_z.log_prob(inputs), 1), name='p_x_given_z/log_prob')
+	lg_p_x_given_z = tf.identity(tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(inputs)), 1), name='p_x_given_z/log_prob')
+
+	#print('')
 
 	# Discriminator T(x, z)
 	with tf.variable_scope('discriminator', reuse=reuse):

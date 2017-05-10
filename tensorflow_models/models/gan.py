@@ -72,7 +72,5 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	ll_data = tf.identity(-tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=p_data, labels=tf.ones_like(p_data)), 1), name='p_x/log_prob_real')
 	ll_fake = tf.identity(-tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=p_fake, labels=tf.ones_like(p_fake)), 1), name='p_x/log_prob_fake')
 	ll_one_minus_fake = tf.identity(-tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=p_fake, labels=tf.zeros_like(p_fake)), 1), name='p_x/log_one_minus_prob_fake')
-	print('ll_data.shape = ', ll_data.shape)
-
 
 	return ll_data, ll_fake, ll_one_minus_fake

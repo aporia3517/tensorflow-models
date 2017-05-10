@@ -30,16 +30,19 @@ from tensorflow.python.ops import init_ops
 import tensorflow_models as tf_models
 import tensorflow.contrib.slim as slim
 
-weights_initializer = tf.contrib.layers.variance_scaling_initializer(factor=2.0, mode='FAN_IN', uniform=False)
+#weights_initializer = tf.contrib.layers.variance_scaling_initializer(factor=2.0, mode='FAN_IN', uniform=False)
 
 # Define a multilayer perceptron, or dense feedforward net
 def mlp(inputs, sizes, scope='layer', activation_fn=tf.nn.relu, final_activation_fn=None):
 	if final_activation_fn is None:
-		return slim.stack(inputs, slim.fully_connected, sizes, scope=scope, activation_fn=activation_fn, weights_initializer=weights_initializer)
+		#return slim.stack(inputs, slim.fully_connected, sizes, scope=scope, activation_fn=activation_fn, weights_initializer=weights_initializer)
+		return slim.stack(inputs, slim.fully_connected, sizes, scope=scope, activation_fn=activation_fn)
 	else:
 		# TODO: Check that variables are being created properly and not reused
-		layer = slim.stack(inputs, slim.fully_connected, sizes[:-1], scope=scope, activation_fn=activation_fn, weights_initializer=weights_initializer)
-		return slim.fully_connected(layer, sizes[-1], scope=scope, activation_fn=final_activation_fn, weights_initializer=weights_initializer)
+		#layer = slim.stack(inputs, slim.fully_connected, sizes[:-1], scope=scope, activation_fn=activation_fn, weights_initializer=weights_initializer)
+		#return slim.fully_connected(layer, sizes[-1], scope=scope, activation_fn=final_activation_fn, weights_initializer=weights_initializer)
+		layer = slim.stack(inputs, slim.fully_connected, sizes[:-1], scope=scope, activation_fn=activation_fn)
+		return slim.fully_connected(layer, sizes[-1], scope=scope, activation_fn=final_activation_fn)
 
 #def mlp2(input1, input2, sizes, scope='layer', activation_fn=tf.nn.relu, final_activation_fn=None):
 #	# Define a layer that takes both inputs

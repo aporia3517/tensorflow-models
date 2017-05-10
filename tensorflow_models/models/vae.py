@@ -58,14 +58,15 @@ def create_decoder(settings, reuse=True):
 
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_placeholder, is_training=False)
-		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
-		decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
-	return decoder
+		#dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
+		#decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
+	#return decoder
+	return tf.nn.sigmoid(logits_x)
 
 def create_probs(settings, inputs, is_training, reuse=False):
 	encoder_network = settings['architecture']['encoder_network']
 	decoder_network = settings['architecture']['decoder_network']
-	\
+	
 	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
 
 	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
@@ -80,11 +81,11 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	# Use generator to determine mean of Bernoulli distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_sample, is_training=is_training)
-	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
+	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x))
 	
 	# NOTE: x | z is defined as over each pixel separate, where prior on z is a multivariate
 	# Hence the need to do the tf.reduce_sum op on the former to get down to a single number for each sample
-	lg_p_x_given_z = tf.reduce_sum(dist_x_given_z.log_prob(inputs), 1, name='p_x_given_z/log_prob')
+	lg_p_x_given_z = tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(inputs)), 1, name='p_x_given_z/log_prob')
 	lg_p_z = tf.identity(dist_prior.log_prob(z_sample), name='p_z/log_prob')
 	lg_q_z_given_x = tf.identity(dist_z_given_x.log_prob(z_sample), name='q_z_given_x/log_prob')
 
@@ -94,8 +95,8 @@ def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
 			logits_x = decoder_network(settings, z, is_training=is_training)
-	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
-	return tf.reduce_sum(dist_x_given_z.log_prob(x), 1)
+	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x))
+	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
 def lg_prior(z, reuse=True, is_training=False):
 	dist_prior = tf_models.standard_normal(z.shape)

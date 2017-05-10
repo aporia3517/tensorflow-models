@@ -107,10 +107,13 @@ class BaseTrainer(object):
 		return self.step < self._count_steps and self._context.running()
 
 	def _save_snapshot(self):
+		#print('saving snapshot')
 		if (not self._settings['steps_per_snapshot'] is None) and (self.step % self._settings['steps_per_snapshot'] == 0):
 			self._saver.save(self.sess, tf_models.settings.snapshots_filepath(self._settings, self._paths), global_step=self.step)
 			tf_models.snapshot.save_results(tf_models.settings.snapshots_filepath(self._settings, self._paths), self.step, self.results)
+
 			if self._settings['plot_samples'] and not self._decoder is None:
+				#print('plotting samples: {}'.format(tf_models.settings.samples_filepath(self._settings, self._paths) + '-samples-' + str(self.step)))
 				decoded_samples = self.sess.run(self._decoder, feed_dict={self._z_placeholder: self.results['prior_noise']})
 				tf_models.plot.sample_grid(
 					tf_models.settings.samples_filepath(self._settings, self._paths) + '-samples-' + str(self.step),

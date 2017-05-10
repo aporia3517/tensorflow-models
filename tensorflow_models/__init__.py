@@ -47,6 +47,16 @@ class GraphKeys(object):
 	LOSSES = 'losses'
 	INFERENCE = 'inference'
 
+# Flatten out the HWC dimensions of a tensor
+def flatten(x):
+	if len(x.shape) > 2:
+		x = tf.reshape(x, [int(x.shape[0]), -1])
+	return x
+
+# Sum out the HWC dimensions of a tensor
+def reduce_sum(x):
+	return tf.reduce_sum(flatten(x), 1)
+
 # Return the scale of samples (which is [0, 1] unless transformations have been applied)
 def sample_scale(settings):
 	scale = [0, 1]
