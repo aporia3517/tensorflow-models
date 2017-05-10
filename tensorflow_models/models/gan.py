@@ -40,6 +40,8 @@ def create_prior(settings):
 	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), name='p_z/sample')
 
 def create_decoder(settings, reuse=True):
+	print('reuse in create_decoder', reuse)
+
 	generator_network = settings['architecture']['generator_network']
 
 	z_placeholder = tf_models.codes_placeholder()
@@ -63,8 +65,14 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		tf.get_variable_scope().reuse_variables()
 		p_fake = discriminator_network(settings, fake, is_training=is_training)
 
-	ll_data = tf.identity(tf.reduce_sum(tf_models.safe_log(p_data), 1), name='p_x/log_prob_real')
-	ll_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(p_fake), 1), name='p_x/log_prob_fake')
-	ll_one_minus_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(1. - p_fake), 1), name='p_x/log_one_minus_prob_fake')
+	#ll_data = tf.identity(tf.reduce_sum(tf_models.safe_log(tf.nn.sigmoid(p_data)), 1), name='p_x/log_prob_real')
+	#ll_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(tf.nn.sigmoid(p_fake)), 1), name='p_x/log_prob_fake')
+	#ll_one_minus_fake = tf.identity(tf.reduce_sum(tf_models.safe_log(1. - tf.nn.sigmoid(p_fake)), 1), name='p_x/log_one_minus_prob_fake')
+
+	ll_data = tf.identity(-tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=p_data, labels=tf.ones_like(p_data)), 1), name='p_x/log_prob_real')
+	ll_fake = tf.identity(-tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=p_fake, labels=tf.ones_like(p_fake)), 1), name='p_x/log_prob_fake')
+	ll_one_minus_fake = tf.identity(-tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=p_fake, labels=tf.zeros_like(p_fake)), 1), name='p_x/log_one_minus_prob_fake')
+	print('ll_data.shape = ', ll_data.shape)
+
 
 	return ll_data, ll_fake, ll_one_minus_fake

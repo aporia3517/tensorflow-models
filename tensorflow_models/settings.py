@@ -44,7 +44,7 @@ def defaults():
 		'optimizer': 'adam',	# Module name for optimizer: ['adam', 'rmsprop', 'sgd']
 		'learning_rate': 0.001,   # Learning rate
 		'batch_size': 100,
-		'sample_size': 25, # Number of samples to draw from prior for decoding to samples from model
+		'sample_size': 64, # Number of samples to draw from prior for decoding to samples from model
 		'count_epochs': 100, # How many epochs to train for
 		'count_steps': None,	# How many steps to train for (takes precedence over 'count_epochs')
 		'batches_per_step': None,	# How many minibatches of training to do per step. Defaults to 1 epoch's worth

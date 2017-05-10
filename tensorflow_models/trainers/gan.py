@@ -37,11 +37,11 @@ class Trainer(BaseTrainer):
 	def learning_hooks(self):
 		generator_train_op = tf_models.get_inference('generator')
 		train_generator_loss_op = tf_models.get_loss('train/generator')
-		test_generator_loss_op = tf_models.get_loss('test/generator')
+		#test_generator_loss_op = tf_models.get_loss('test/generator')
 
 		discriminator_train_op = tf_models.get_inference('discriminator')
 		train_discriminator_loss_op = tf_models.get_loss('train/discriminator')
-		test_discriminator_loss_op = tf_models.get_loss('test/discriminator')
+		#test_discriminator_loss_op = tf_models.get_loss('test/discriminator')
 
 		def train(count_steps):
 			total_generator = 0.
@@ -58,22 +58,24 @@ class Trainer(BaseTrainer):
 				total_generator += this_generator
 			return total_discriminator / count_steps, total_generator / count_steps
 
-		def test():
-			total_generator = 0.
-			total_discriminator = 0.
-			for idx in range(self.test_batches):
-				this_discriminator, this_generator = self.sess.run([test_discriminator_loss_op, test_generator_loss_op])
-				total_generator += this_generator
-				total_discriminator += this_discriminator
-			return total_discriminator / self.test_batches, total_generator / self.test_batches
+		#def test():
+		#	total_generator = 0.
+		#	total_discriminator = 0.
+		#	for idx in range(self.test_batches):
+		#		this_discriminator, this_generator = self.sess.run([test_discriminator_loss_op, test_generator_loss_op])
+		#		total_generator += this_generator
+		#		total_discriminator += this_discriminator
+		#	return total_discriminator / self.test_batches, total_generator / self.test_batches
 
-		return train, test
+		return train, None #, test
 
 	def initialize_hook(self):
 		# See where the test loss starts
 		if self._settings['resume_from'] is None:
 			# Do a test evaluation before any training happens
-			discriminator_loss, generator_loss = self.test()
+			#discriminator_loss, generator_loss = self.test()
+			discriminator_loss = 0
+			generator_loss = 0
 			self.results['generator_losses'] += [generator_loss]
 			self.results['discriminator_losses'] += [discriminator_loss]
 		else:
@@ -83,9 +85,10 @@ class Trainer(BaseTrainer):
 
 	def step_hook(self):
 		with tf_models.timer.Timer() as train_timer:
-			_, _ = self.train(self._batches_per_step)
+			#_, _ = self.train(self._batches_per_step)
+			discriminator_loss, generator_loss = self.train(self._batches_per_step)
 
-		discriminator_loss, generator_loss = self.test()
+		#discriminator_loss, generator_loss = self.test()
 
 		self.results['generator_losses'] += [generator_loss]
 		self.results['discriminator_losses'] += [discriminator_loss]

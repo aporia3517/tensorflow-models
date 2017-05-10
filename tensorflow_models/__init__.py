@@ -126,19 +126,20 @@ def input_ops(settings):
 	for x in wrap(train_samples):
 		tf.add_to_collection(GraphKeys.INPUTS, x)
 
-	with tf.name_scope('inputs/test'):
-		test_samples = tf_data.inputs(
-			name=settings['dataset'],
-			subset=tf_data.Subset.TEST,
-			return_labels=settings['labels'],
-			batch_size=settings['batch_size'],
-			num_threads=settings['num_threads'],
-			transformations=settings['transformations'])
+	if not settings['model'] == 'gan':
+		with tf.name_scope('inputs/test'):
+			test_samples = tf_data.inputs(
+				name=settings['dataset'],
+				subset=tf_data.Subset.TEST,
+				return_labels=settings['labels'],
+				batch_size=settings['batch_size'],
+				num_threads=settings['num_threads'],
+				transformations=settings['transformations'])
 
-	for x in wrap(test_samples):
-		tf.add_to_collection(GraphKeys.INPUTS, x)
+		for x in wrap(test_samples):
+			tf.add_to_collection(GraphKeys.INPUTS, x)
 
-	return train_samples, test_samples
+	#return train_samples, test_samples
 
 def input_placeholders(settings):
 	#count_train = settings['count'][tf_data.Subset.TRAIN]
@@ -283,10 +284,11 @@ def model_ops(settings):
 			for p in wrap(probs):
 				tf.add_to_collection(GraphKeys.OUTPUTS, p)
 
-		with tf.name_scope('test'):
-			probs = model.create_probs(settings, samples(tf_data.Subset.TEST), is_training=False, reuse=True)
-			for p in wrap(probs):
-				tf.add_to_collection(GraphKeys.OUTPUTS, p)
+		if not settings['model'] == 'gan':
+			with tf.name_scope('test'):
+				probs = model.create_probs(settings, samples(tf_data.Subset.TEST), is_training=False, reuse=True)
+				for p in wrap(probs):
+					tf.add_to_collection(GraphKeys.OUTPUTS, p)
 
 		if 'create_encoder' in dir(model):
 			tf.add_to_collection(GraphKeys.ENCODERS, model.create_encoder(settings, reuse=True))
@@ -296,7 +298,10 @@ def model_ops(settings):
 def loss_ops(settings):
 	loss_lib = importlib.import_module('tensorflow_models.losses.' + settings['loss'])
 	with tf.name_scope('losses'):
-		ls = wrap(loss_lib.create('train')) + wrap(loss_lib.create('test'))
+		if not settings['model'] == 'gan':
+			ls = wrap(loss_lib.create('train')) + wrap(loss_lib.create('test'))
+		else:
+			ls = wrap(loss_lib.create('train'))
 		for l in ls:
 			tf.add_to_collection(GraphKeys.LOSSES, l)
 

@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -100,6 +100,64 @@ def wgan_2v_critic_mlp(settings, x, z, is_training):
 	inputs = tf.concat([x, z], axis=1)
 	return tf_models.layers.mlp(inputs, architecture['critic_sizes'] + [1], final_activation_fn=tf.identity)
 
+def lrelu(x, leak=0.2, name="lrelu"):
+	return tf.maximum(x, leak*x)
+
+normalizer_params={'scale':True, 'is_training':True, 'updates_collections':None}
+
+def dcgan_generator(settings, code, is_training):
+	print('dcgan_generator is_training=', is_training)
+
+	# TODO: DC-GAN implemenation
+	gf_dim = 32
+	h = slim.fully_connected(code, gf_dim*4*4*4, scope='projection', activation_fn=tf.nn.relu, normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'decay':0.999, 'is_training':is_training, 'updates_collections':None})
+	h = tf.reshape(h, [-1, 4, 4, gf_dim*4])
+	#h = slim.conv2d_transpose(h, gf_dim*4, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.relu, scope='g2', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training, 'updates_collections':None})
+	h = slim.conv2d_transpose(h, gf_dim*2, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.relu, scope='g3', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'decay':0.999, 'is_training':is_training, 'updates_collections':None})
+	h = slim.conv2d_transpose(h, gf_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.relu, scope='g4', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'decay':0.999, 'is_training':is_training, 'updates_collections':None})
+	h = slim.conv2d_transpose(h, 1, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.tanh, scope='g5')
+	h = tf.reshape(h, tf_models.batchshape(settings))
+
+	return h
+
+def dcgan_discriminator(settings, inputs, is_training):
+	print('dcgan_discriminator is_training=', is_training)
+
+	# TODO: DC-GAN implementation
+	#h = tf.reshape(inputs, [100, 28, 28, 1])
+	h = inputs
+	df_dim = 32
+	h = slim.conv2d(h, df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=lrelu, scope='h1')
+	h = slim.conv2d(h, 2*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=lrelu, scope='h2', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'decay':0.999, 'is_training':is_training, 'updates_collections':None})
+	h = slim.conv2d(h, 4*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=lrelu, scope='h3', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'decay':0.999, 'is_training':is_training, 'updates_collections':None})
+	#h = slim.conv2d(h, 8*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=lrelu, scope='h4', normalizer_fn=slim.batch_norm, normalizer_params={'scale':True, 'is_training':is_training, 'updates_collections':None})
+	h = tf.reshape(h, [100, -1])
+	h = slim.fully_connected(h, 1, activation_fn=tf.identity, scope='h5')
+
+	return h
+
+def generator(settings, z, is_training):
+	#normalizer_params = 
+	gf_dim = 64
+	h = slim.fully_connected(z, gf_dim*4*4*4, scope='projection', activation_fn=tf.nn.relu, normalizer_fn=slim.batch_norm, normalizer_params=normalizer_params)
+	h = tf.reshape(h, [-1, 4, 4, gf_dim*4])
+	h = slim.conv2d_transpose(h, gf_dim*2, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.relu, scope='g2', normalizer_fn=slim.batch_norm, normalizer_params=normalizer_params)
+	#h = slim.conv2d_transpose(h, gf_dim*2, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.relu, scope='g3', normalizer_fn=slim.batch_norm, normalizer_params=normalizer_params)
+	h = slim.conv2d_transpose(h, gf_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.relu, scope='g4', normalizer_fn=slim.batch_norm, normalizer_params=normalizer_params)
+	h = slim.conv2d_transpose(h, 1, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=tf.nn.tanh, scope='g5')
+	h = tf.reshape(h, [100, 32, 32, 1])
+	return h
+
+def discriminator(settings, x, is_training):
+	df_dim = 64
+	h = slim.conv2d(x, df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=lrelu, scope='h1')
+	h = slim.conv2d(h, 2*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=lrelu, scope='h2', normalizer_fn=slim.batch_norm, normalizer_params=normalizer_params)
+	h = slim.conv2d(h, 4*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=lrelu, scope='h3', normalizer_fn=slim.batch_norm, normalizer_params=normalizer_params)
+	#h = slim.conv2d(h, 8*df_dim, kernel_size=[5, 5], stride=2, padding='SAME', activation_fn=lrelu, scope='h4', normalizer_fn=slim.batch_norm, normalizer_params=normalizer_params, weights_initializer=tf.truncated_normal_initializer(stddev=stddev), reuse=reuse)
+	h = tf.reshape(h, [100, -1])
+	h = slim.fully_connected(h, 1, activation_fn=tf.identity, scope='h5')
+	return h
+
 # DC-GAN decoder. Uses transposed (fractionally strided) convolutions
 def gan_generator_cnn(settings, code, is_training):
 	architecture = settings['architecture']
@@ -110,7 +168,7 @@ def gan_generator_cnn(settings, code, is_training):
 	# Extract params and set defaults
 	if 'batch_norm' in params and params['batch_norm']:
 		normalizer_fn = slim.batch_norm
-		normalizer_params = {'scale':True, 'is_training':is_training}
+		normalizer_params = {'scale':True, 'is_training':is_training, 'updates_collections':None, 'decay':0.9}
 	else:
 		normalizer_fn = None
 		normalizer_params = None
@@ -171,7 +229,7 @@ def gan_discriminator_cnn(settings, inputs, is_training):
 	# Extract params and set defaults
 	if 'batch_norm' in params and params['batch_norm']:
 		normalizer_fn = slim.batch_norm
-		normalizer_params = {'scale':True, 'is_training':is_training}
+		normalizer_params = {'scale':True, 'is_training':is_training, 'updates_collections':None, 'decay':0.9}
 	else:
 		normalizer_fn = None
 		normalizer_params = None
@@ -190,6 +248,9 @@ def gan_discriminator_cnn(settings, inputs, is_training):
 	df_dim = params['filter_count']
 	initial_size = params['initial_size']
 
+	dims = list(df_dim*(params['increase_factor']**np.arange(params['conv_layers'])))
+	h = slim.conv2d(h, dims[0], activation_fn=activation_fn, normalizer_fn=None, normalizer_params=None, kernel_size=[5, 5], stride=2, padding='SAME', scope='convs_first')
+
 	with slim.arg_scope([slim.conv2d],
                       activation_fn=activation_fn,
                       normalizer_fn=normalizer_fn,
@@ -198,16 +259,16 @@ def gan_discriminator_cnn(settings, inputs, is_training):
 											stride=2,
 											padding='SAME'
 											):
-		dims = list(df_dim*(params['increase_factor']**np.arange(params['conv_layers'])))
+		
 		#print('dims', dims)
 
-		h = slim.stack(h, slim.conv2d, dims, scope='convs')
+		h = slim.stack(h, slim.conv2d, dims[1:], scope='convs')
 		#print('h.shape', h.shape)
 
 		h = tf.reshape(h, [100, -1])
 		#print('h.shape', h.shape)
 
-	h = slim.fully_connected(h, 1, activation_fn=tf.nn.sigmoid, scope='output') # normalizer_fn=normalizer_fn, normalizer_params=normalizer_params,
+	h = slim.fully_connected(h, 1, activation_fn=tf.identity, scope='output', normalizer_fn=None, normalizer_params=None)
 	#print('h.shape', h.shape)
 
 	return h

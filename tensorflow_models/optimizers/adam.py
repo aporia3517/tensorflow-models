@@ -26,20 +26,18 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-def training(loss, learning_rate=0.001, var_list=None, step=None, clip_grads=False, name='Adam', beta1=0.9, beta2=0.999):
+def training(loss, learning_rate=0.001, var_list=None, step=None, clip_grads=False, name='Adam', beta1=0.9, beta2=0.999, update_ops=[]):
 	# Add a scalar summary for the snapshot loss.
 	# TODO: Adding summaries!
 	#tf.summary.scalar('loss', loss)
 
+	#print('learning_rate = ', learning_rate)
+	#print('beta1 = ', beta1)
+	#print('beta2= ', beta2)
+	#print('var_list', [v.name for v in var_list])
+
 	# Create the gradient descent optimizer with the given learning rate.
 	optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name=name, beta1=beta1, beta2=beta2)
-
-	# Use the optimizer to apply the gradients that minimize the loss
-	# TODO: Better way to code this??
-	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-
-	# DEBUG
-	#print('update_ops', update_ops)
 
 	with tf.control_dependencies(update_ops):
 		if step is None:

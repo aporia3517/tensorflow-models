@@ -41,6 +41,18 @@ def create(settings):
 	discriminator_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/discriminator')]
 	#other_vars = [var for var in tf.trainable_variables() if not var.name.startswith(settings['model'] + '/generator') and not var.name.startswith(settings['model'] + '/discriminator')]
 
+	# Use the optimizer to apply the gradients that minimize the loss
+	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+	#print(update_ops)
+	disc_update_ops = [v for v in update_ops if v.name.startswith('model/train/discriminator')]
+	gen_update_ops = [v for v in update_ops if v.name.startswith('model/train/generator')]
+
+	print('')
+	print('disc_update_ops', disc_update_ops)
+	print('')
+	print('gen_update_ops', gen_update_ops)
+	print('')
+
 	#print('generator variables')
 	#print([var.name for var in generator_vars])
 	#print('discriminator variables')
@@ -49,8 +61,8 @@ def create(settings):
 
 	# Add to the Graph operations that train the model.
 	if not settings['optimizer'] is 'adam':
-		generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator')
-		discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator')
+		generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator', update_ops=gen_update_ops)
+		discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator', update_ops=disc_update_ops)
 	else:
 		generator_train_op = optimizer_lib.training(train_generator_loss, learning_rate=settings['learning_rate'], var_list=generator_vars, step=step, name='generator', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 		discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
