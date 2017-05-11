@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -65,6 +65,14 @@ def real_generator_mlp(settings, inputs, eps, is_training):
 						tf.concat([inputs, eps], axis=1), 
 						architecture['generator_sizes'] + [settings['latent_dimension']],
 						final_activation_fn=tf.identity)
+
+def uniform_minus1_plus1_generator_mlp(settings, inputs, eps, is_training):
+	architecture = settings['architecture']
+	inputs = tf_models.flatten(inputs)
+	return tf_models.layers.mlp(
+						tf.concat([inputs, eps], axis=1), 
+						architecture['generator_sizes'] + [settings['latent_dimension']],
+						final_activation_fn=tf.nn.tanh)
 
 def bernoulli_parameters_dcgan(settings, code, is_training):
 	architecture = settings['architecture']

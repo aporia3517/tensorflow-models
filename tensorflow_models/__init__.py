@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -158,17 +158,17 @@ def input_placeholders(settings):
 	with tf.name_scope('inputs/train'):
 		#print('sample_shape', sample_shape(settings), unflattened_sample_shape(settings))
 		
-		train = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([None], tf_data.sample_shape(settings))), name='samples')
+		train = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([settings['batch_size']], tf_data.sample_shape(settings))), name='samples')
 		if settings['labels']:
-			train = [train, tf.placeholder(dtype=tf.float32, shape=[None, 1], name='labels')]
+			train = [train, tf.placeholder(dtype=tf.float32, shape=[settings['batch_size'], 1], name='labels')]
 
 	for x in wrap(train):
 		tf.add_to_collection(GraphKeys.INPUTS, x)
 
 	with tf.name_scope('inputs/test'):
-		test = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([None], tf_data.sample_shape(settings))), name='samples')
+		test = tf.placeholder(dtype=tf.float32, shape=np.concatenate(([settings['batch_size']], tf_data.sample_shape(settings))), name='samples')
 		if settings['labels']:
-			test = [test, tf.placeholder(dtype=tf.float32, shape=[None, 1], name='labels')]
+			test = [test, tf.placeholder(dtype=tf.float32, shape=[settings['batch_size'], 1], name='labels')]
 
 	for x in wrap(test):
 		tf.add_to_collection(GraphKeys.INPUTS, x)

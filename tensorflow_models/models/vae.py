@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -61,7 +61,7 @@ def create_decoder(settings, reuse=True):
 		#dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 		#decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
 	#return decoder
-	return tf.nn.sigmoid(logits_x)
+	return tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
 
 def create_probs(settings, inputs, is_training, reuse=False):
 	encoder_network = settings['architecture']['encoder_network']
@@ -92,6 +92,8 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	return lg_p_x_given_z, lg_p_z, lg_q_z_given_x
 
 def lg_likelihood(x, z, settings, reuse=True, is_training=False):
+	decoder_network = settings['architecture']['decoder_network']
+
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
 			logits_x = decoder_network(settings, z, is_training=is_training)

@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -29,7 +29,7 @@ import tensorflow_datasets as tf_data
 import tensorflow_models as tf_models
 
 class BaseEvaluator(object):
-	def __init__(self, settings, paths, context):
+	def __init__(self, settings, paths, context, ops):
 		self._settings = settings
 		self._context = context
 		self.sess = self._context.sess
@@ -39,6 +39,7 @@ class BaseEvaluator(object):
 		self._initialize_counters()
 		self._decoder = tf_models.get_decoder()
 		self._z_placeholder = tf_models.codes_placeholder()
+		self._ops = ops
 
 		if not self._decoder is None:
 			assert(settings['batch_size'] >= settings['sample_size'])
@@ -53,24 +54,33 @@ class BaseEvaluator(object):
 
 	# Initialize results, loading results/parameters from snapshot if requested
 	def _resume(self):
-		if self._settings['resume_from'] is None:
-			self.step = 0
-			self.results = self.initialize_results_hook()
-			if not self._decoder is None:
-				self.results['prior_noise'] = self.sess.run(tf_models.get_prior())
-		else:
-			# Check that checkpoint file exists
-			# TODO: Test this! I think it will fail on utils.settings.filepath because it doesn't have paths passed in
-			self.step = self._settings['resume_from']
-			snapshot_filepath = tf_models.settings.snapshots_filepath(self._settings, self._paths) + '-' + str(self.step)
-			if not tf_data.utils.file.exists(snapshot_filepath + '.meta'):
-				raise IOError('Snapshot at step {} does not exist'.format(self.step))
-			self._saver.restore(self.sess, snapshot_filepath)
+		# Check that checkpoint file exists
+		self.step = self._settings['ais_start'] - self._settings['ais_increment']
+		#self._load_snapshot()
 
-			# TODO: Version that omits prior noise for supervised learning
-			# TODO: Need to remove decoding samples in other parts too!
-			self.results = tf_models.snapshot.load_results(snapshot_filepath)
-			print("Model restored from epoch {}".format(self._settings['resume_from']))
+	def _end_step(self):
+		return min(self._settings['ais_end'], self._settings['count_epochs'])
+
+	def running(self):
+		return self.step < self._end_step()
+
+	def run(self):
+		if self.step + self._settings['ais_increment'] < self._end_step():
+			self.step += self._settings['ais_increment']
+		else:
+			self.step = self._end_step()
+		
+		self._load_snapshot()
+		self.step_hook()
+
+	def _load_snapshot(self):
+		# Check that checkpoint file exists
+		snapshot_filepath = tf_models.settings.snapshots_filepath(self._settings, self._paths) + '-' + str(self.step)
+		if not tf_data.utils.file.exists(snapshot_filepath + '.meta'):
+			raise IOError('Snapshot at step {} does not exist'.format(self.step))
+		self._saver.restore(self.sess, snapshot_filepath)
+		self.results = tf_models.snapshot.load_results(snapshot_filepath)
+		print("Model restored from epoch {}".format(self.epoch()))
 
 	# Work out how many steps to do, and how many minibatches per step
 	def _initialize_counters(self):
@@ -85,22 +95,13 @@ class BaseEvaluator(object):
 			# self.train_batches => Batches per epoch
 			self._count_steps = self._settings['count_epochs'] * float(self.train_batches) / self._batches_per_step
 
-	"""def run(self):
-		while self.running():
-			self.before_step_hook()
-			self.step_hook()
-			self.step += 1
-			self.after_step_hook()
-			self._save_snapshot()"""
-
 	# Convert step number into epoch number
 	def epoch(self):
 		return self.step * float(self._batches_per_step) / self.train_batches
 
-	#def running(self):
-	#	return self.step < self._count_steps and self._context.running()
+	def step_to_epoch(self, step):
+		return step * float(self._batches_per_step) / self.train_batches
 
-	# Abtract methods
 	def initialize_hook(self):
 		raise NotImplementedError('Initialization hook has not been implemented')
 	def before_step_hook(self):
@@ -111,5 +112,3 @@ class BaseEvaluator(object):
 		raise NotImplementedError('After step hook has not been implemented')
 	def finalize_hook(self):
 		raise NotImplementedError('Finalization hook has not been implemented')
-	def initialize_results_hook(self):
-		raise NotImplementedError('Results initialization hook has not been implemented')

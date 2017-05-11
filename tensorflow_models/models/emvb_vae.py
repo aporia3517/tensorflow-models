@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -35,8 +35,7 @@ def create_placeholders(settings):
 	return x, z
 
 def create_prior(settings):
-	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
-	return tf.identity(dist_prior.sample(), name='p_z/sample')
+	return tf.identity(tf.random_uniform(tf_models.latentshape(settings), minval=-1, maxval=1.), name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
 	encoder_network = settings['architecture']['encoder_network']
@@ -57,7 +56,7 @@ def create_decoder(settings, reuse=True):
 
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_placeholder, is_training=False)
-		dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
+		#dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 		#decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
 		decoder = tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
 	return decoder
@@ -74,16 +73,16 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	with tf.variable_scope('encoder', reuse=reuse):
 		z_sample = encoder_network(settings, inputs, noise, is_training=is_training)
 
-	# The prior on z is also i.i.d. N(0, 1)
-	z_prior = tf.random_normal(tf_models.latentshape(settings), 0, 1, dtype=tf.float32)
+	# The prior on z is Unif(-1, 1)
+	z_prior = tf.random_uniform(tf_models.latentshape(settings), minval=-1, maxval=1.)
 		
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_sample, is_training=is_training)
-	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
+	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x))
 
 	# Log likelihood of reconstructed inputs
-	lg_p_x_given_z = tf.identity(tf.reduce_sum(dist_x_given_z.log_prob(inputs), 1), name='p_x_given_z/log_prob')
+	lg_p_x_given_z = tf.identity(tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(inputs)), 1), name='p_x_given_z/log_prob')
 
 	# Form interpolated variable
 	eps = tf.random_uniform([settings['batch_size'], 1], minval=0., maxval=1.)
@@ -101,3 +100,18 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	#print('inputs.name', inputs.name)
 
 	return lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, inputs #x
+
+def lg_likelihood(x, z, settings, reuse=True, is_training=False):
+	decoder_network = settings['architecture']['decoder_network']
+
+	with tf.variable_scope('model'):
+		with tf.variable_scope('decoder', reuse=reuse):
+			logits_x = decoder_network(settings, z, is_training=is_training)
+	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x))
+	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
+
+def lg_prior(z, reuse=True, is_training=False):
+	# TODO: Test that shapes are correct
+	dist_prior = tf_models.gan_uniform()
+	#print(dist_prior.log_prob(z).shape)
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)

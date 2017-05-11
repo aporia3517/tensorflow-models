@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -34,30 +34,57 @@ import tensorflow_models as tf_models
 from tensorflow_models.evaluation.hmc import hmc_step, hmc_updates
 from tensorflow_models.evaluation import BaseEvaluator
 
+def log_mean_exp(x, axis=None):
+	m = np.max(x, axis=axis, keepdims=True)
+	return m + np.log(np.mean(np.exp(x - m), axis=axis, keepdims=True))
+
+def tf_log_mean_exp(x, axis=None):
+	m = tf.reduce_max(x, axis=axis, keep_dims=True)
+	return m + tf.log(tf.reduce_mean(tf.exp(x - m), axis=axis, keep_dims=True))
+
 class Evaluator(BaseEvaluator):
 	def finalize_hook(self):
 		print('Done training for {} epochs'.format(self.epoch()))
 
 	def initialize_hook(self):
-		# See where the test loss starts
-		if self._settings['resume_from'] is None:
-			raise Exception('AIS calculation must resume from a snapshot')
-		else:
-			test_loss = self.results['costs_test'][-1]
-		print('epoch {:.3f}, test loss = {:.2f}'.format(self.epoch(), test_loss))
+		self.weights = np.zeros((self._settings['ais_num_weights'], self._settings['batch_size']), dtype=np.float32)
+		self.ais_results = {}
+		self.ais_results['ais_ll'] = []
+		self.ais_results['ais_epoch'] = []
 
 	def step_hook(self):
-		pass
+		# See where the test loss starts
+		if 'costs_test' in self.results:
+			test_loss = self.results['costs_test'][self.step]
+		elif 'elbo_test' in self.results:
+			test_loss = self.results['elbo_test'][-1]
+		else:
+			raise Exception("Can't find ELBO term in results")
+		print('epoch {:.3f}, test loss = {:.2f}'.format(self.epoch(), test_loss))
+
+		# TODO: Operations
+		num_weights = self._settings['ais_num_weights']
+		batch_size = self._settings['batch_size']
+		with tf_models.timer.Timer() as ais_timer:
+			for i in range(num_weights):
+				with tf_models.timer.Timer() as weights_timer:
+					z, w, s, a = self.sess.run(self._ops)
+				print('importance weights {}/{}, {:.1f} sec'.format(i+1, num_weights, weights_timer.interval))
+				self.weights[i, :] = w.reshape((batch_size,))
+
+		print('Calculating AIS took {:.1f} sec'.format(ais_timer.interval))
+		avg_weights = log_mean_exp(self.weights, axis=0)
+		avg_nll = -np.mean(avg_weights)
+	
+		print('estimate of mean(ll): ', avg_nll)
+		self.ais_results['ais_ll'].append(avg_nll)
+		self.ais_results['ais_epoch'].append(self.epoch())
 
 	def before_step_hook(self):
 		pass
 
 	def after_step_hook(self):
-		pass
-
-	def initialize_results_hook(self):
-		results = {}
-		return results
+		pass	
 
 def ais(sample_prior_op, lg_prior, lg_px_given_z, x, num_steps=20, count_intermediate=100):
 

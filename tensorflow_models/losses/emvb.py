@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -63,14 +63,14 @@ def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name):
 	#print('grad.shape', grad[0].shape)
 	#print('grad2.shape', grad2[0].shape)
 
-	grad_norm = tf.sqrt(tf.reduce_sum((tf.concat([grad[0], grad2[0]], axis=1))**2, axis=1))
+	grad_norm = tf.sqrt(tf.reduce_sum((tf.concat([grad[0], tf_models.flatten(grad2[0])], axis=1))**2, axis=1))
 	grad_pen = lam * tf.reduce_mean(grad_norm - 1.)**2
 
 	minus_EM = tf.reduce_mean(D_fake) - tf.reduce_mean(D_real)
 	D_loss = tf.reduce_mean(minus_EM + grad_pen)
 
 	# TODO: Be able to change scaling factor in settings file!
-	regu_term = -tf.sqrt(tf.abs(minus_EM)*0.1)
+	regu_term = -tf.sqrt(tf.abs(minus_EM)/2.) * 100.
 	elbo_loss = tf.reduce_mean(-loglike - regu_term)
 
 	#discriminator_loss = -tf.reduce_mean(prior_critic - critic)
