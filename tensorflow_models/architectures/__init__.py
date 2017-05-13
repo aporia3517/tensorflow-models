@@ -34,6 +34,7 @@ from six.moves import range
 # Returns the parameters for the normal distribution on z given x
 def gaussian_parameters_mlp(settings, inputs, is_training):
 	architecture = settings['architecture']
+	inputs = tf_models.flatten(inputs)
 	return tf_models.layers.gaussian_parameters_mlp(inputs, architecture['encoder_sizes'] + [settings['latent_dimension']])
 
 # Decoder: p(x | z)
@@ -73,6 +74,14 @@ def uniform_minus1_plus1_generator_mlp(settings, inputs, eps, is_training):
 						tf.concat([inputs, eps], axis=1), 
 						architecture['generator_sizes'] + [settings['latent_dimension']],
 						final_activation_fn=tf.nn.tanh)
+
+def avb_uniform_generator_mlp(settings, inputs, eps, is_training):
+	architecture = settings['architecture']
+	inputs = tf_models.flatten(inputs)
+	return tf_models.layers.mlp(
+						tf.concat([inputs, eps], axis=1), 
+						architecture['generator_sizes'] + [settings['latent_dimension']],
+						final_activation_fn=tf.nn.sigmoid)
 
 def bernoulli_parameters_dcgan(settings, code, is_training):
 	architecture = settings['architecture']

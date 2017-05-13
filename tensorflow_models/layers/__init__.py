@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -61,8 +61,10 @@ def mlp(inputs, sizes, scope='layer', activation_fn=tf.nn.relu, final_activation
 # NOTE: This is the basic architecture for the encoder network in a VAE
 def gaussian_parameters_mlp(inputs, sizes):
 	layer = mlp(inputs, sizes[:-1])
-	mean_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='mean', weights_initializer=weights_initializer)
-	log_sigma_sq_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='log_sigma_sq', weights_initializer=weights_initializer)
+	#mean_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='mean', weights_initializer=weights_initializer)
+	#log_sigma_sq_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='log_sigma_sq', weights_initializer=weights_initializer)
+	mean_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='mean')
+	log_sigma_sq_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='log_sigma_sq')
 	diag_stdev_z = tf.sqrt(tf.exp(log_sigma_sq_z))
 	return mean_z, diag_stdev_z
 

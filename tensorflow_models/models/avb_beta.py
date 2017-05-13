@@ -35,8 +35,9 @@ def create_placeholders(settings):
 	return x, z
 
 def create_prior(settings):
-	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
-	return tf.identity(dist_prior.sample(), name='p_z/sample')
+	dist_prior = tf.contrib.distributions.Beta(concentration1=settings['prior_alpha'], concentration0=settings['prior_beta'])
+	#return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1., name='p_z/sample')
+	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
 	encoder_network = settings['architecture']['encoder_network']
@@ -59,13 +60,13 @@ def create_decoder(settings, reuse=True):
 		logits_x = decoder_network(settings, z_placeholder, is_training=False)
 		#dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
 		#decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
-		decoder = tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
-	return decoder
+	#return decoder
+	return tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
 
 def create_probs(settings, inputs, is_training, reuse=False):
 	encoder_network = settings['architecture']['encoder_network']
 	decoder_network = settings['architecture']['decoder_network']
-	critic_network = settings['architecture']['critic_network']
+	discriminator_network = settings['architecture']['discriminator_network']
 
 	# The noise is distributed i.i.d. N(0, 1)
 	noise = tf.random_normal(tf_models.noiseshape(settings), 0, 1, dtype=tf.float32)
@@ -74,8 +75,10 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	with tf.variable_scope('encoder', reuse=reuse):
 		z_sample = encoder_network(settings, inputs, noise, is_training=is_training)
 
-	# The prior on z is Unif(-1, 1)
-	z_prior = tf.random_normal(tf_models.latentshape(settings), 0, 1, dtype=tf.float32)
+	# The prior on z is also i.i.d. N(0, 1)
+	dist_prior = tf.contrib.distributions.Beta(concentration1=settings['prior_alpha'], concentration0=settings['prior_beta'])
+	#z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1.
+	z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings))
 		
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
@@ -85,22 +88,15 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	# Log likelihood of reconstructed inputs
 	lg_p_x_given_z = tf.identity(tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(inputs)), 1), name='p_x_given_z/log_prob')
 
-	# Form interpolated variable
-	eps = tf.random_uniform([settings['batch_size'], 1], minval=0., maxval=1.)
-	z_inter = tf.identity(eps*z_prior + (1. - eps)*z_sample, name='z/interpolated')
+	#print('')
 
 	# Discriminator T(x, z)
-	with tf.variable_scope('critic', reuse=reuse):
-		critic = tf.identity(critic_network(settings, inputs, z_sample, is_training=is_training), name='generator')
+	with tf.variable_scope('discriminator', reuse=reuse):
+		discriminator = tf.identity(discriminator_network(settings, inputs, z_sample, is_training=is_training), name='generator')
 		tf.get_variable_scope().reuse_variables()
-		prior_critic = tf.identity(critic_network(settings, inputs, z_prior, is_training=is_training), name='prior')
-		inter_critic = tf.identity(critic_network(settings, inputs, z_inter, is_training=is_training), name='inter')
+		prior_discriminator = tf.identity(discriminator_network(settings, inputs, z_prior, is_training=is_training), name='prior')
 
-	x = tf.identity(inputs, name='x')
-
-	#print('inputs.name', inputs.name)
-
-	return lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, inputs #x
+	return lg_p_x_given_z, discriminator, prior_discriminator
 
 def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	decoder_network = settings['architecture']['decoder_network']
@@ -112,5 +108,6 @@ def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
 def lg_prior(z, settings, reuse=True, is_training=False):
-	dist_prior = tf_models.standard_normal(z.shape)
-	return dist_prior.log_prob(z)
+	dist_prior = tf.contrib.distributions.Beta(concentration1=settings['prior_alpha'], concentration0=settings['prior_beta'])
+	#return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob((z + 1.)/2.)), 1)
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)

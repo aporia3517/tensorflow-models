@@ -37,7 +37,7 @@ def loss(ll_data, ll_fake, ll_one_minus_fake, name):
 
 	return tf.identity(-discriminator_objective, name=name+'/discriminator'), tf.identity(-generator_objective, name=name+'/generator')
 
-def create(name='train'):
+def create(name='train', settings=None):
 	lg_p_real = tf_models.get_output(name + '/p_x/log_prob_real')
 	lg_p_fake = tf_models.get_output(name + '/p_x/log_prob_fake')
 	lg_p_one_minus_fake = tf_models.get_output(name + '/p_x/log_one_minus_prob_fake')

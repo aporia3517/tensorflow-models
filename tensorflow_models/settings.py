@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -68,6 +68,12 @@ def filename(settings):
 		return settings['model'] + '-' + settings['dataset'] + '-' + settings['name']
 	else:
 		return settings['model'] + '-' + settings['dataset'] + '-' + settings['name'] + '-' + settings['suffix']
+
+def title(settings):
+	if settings['suffix'] is None:
+		return settings['model'] + '/' + settings['dataset'] + '/' + settings['name']
+	else:
+		return settings['model'] + '/' + settings['dataset'] + '/' + settings['name'] + '/' + settings['suffix']
 
 def snapshots_filepath(settings, paths):
 	return os.path.join(paths['snapshots'], filename(settings))

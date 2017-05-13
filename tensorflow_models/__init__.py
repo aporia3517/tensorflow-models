@@ -309,9 +309,9 @@ def loss_ops(settings):
 	loss_lib = importlib.import_module('tensorflow_models.losses.' + settings['loss'])
 	with tf.name_scope('losses'):
 		if not settings['model'] == 'gan':
-			ls = wrap(loss_lib.create('train')) + wrap(loss_lib.create('test'))
+			ls = wrap(loss_lib.create('train', settings)) + wrap(loss_lib.create('test', settings))
 		else:
-			ls = wrap(loss_lib.create('train'))
+			ls = wrap(loss_lib.create('train', settings))
 		for l in ls:
 			tf.add_to_collection(GraphKeys.LOSSES, l)
 

@@ -100,6 +100,6 @@ def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x))
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
-def lg_prior(z, reuse=True, is_training=False):
+def lg_prior(z, settings, reuse=True, is_training=False):
 	dist_prior = tf_models.standard_normal(z.shape)
 	return dist_prior.log_prob(z)

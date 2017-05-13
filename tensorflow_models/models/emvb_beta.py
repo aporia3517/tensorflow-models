@@ -35,8 +35,9 @@ def create_placeholders(settings):
 	return x, z
 
 def create_prior(settings):
-	dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
-	return tf.identity(dist_prior.sample(), name='p_z/sample')
+	dist_prior = tf.contrib.distributions.Beta(concentration1=settings['prior_alpha'], concentration0=settings['prior_beta'])
+	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), name='p_z/sample')
+	#return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1, name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
 	encoder_network = settings['architecture']['encoder_network']
@@ -75,7 +76,9 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		z_sample = encoder_network(settings, inputs, noise, is_training=is_training)
 
 	# The prior on z is Unif(-1, 1)
-	z_prior = tf.random_normal(tf_models.latentshape(settings), 0, 1, dtype=tf.float32)
+	dist_prior = tf.contrib.distributions.Beta(concentration1=settings['prior_alpha'], concentration0=settings['prior_beta'])
+	z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings))
+	#z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1.
 		
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
@@ -112,5 +115,6 @@ def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
 def lg_prior(z, settings, reuse=True, is_training=False):
-	dist_prior = tf_models.standard_normal(z.shape)
-	return dist_prior.log_prob(z)
+	dist_prior = tf.contrib.distributions.Beta(concentration1=settings['prior_alpha'], concentration0=settings['prior_beta'])
+	#return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob((z + 1.)/2.)), 1)
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)

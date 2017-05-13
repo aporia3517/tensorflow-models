@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -119,7 +119,7 @@ def avb_experiment(filepath, title, ys, ext='png'):
 	fig.savefig(filepath + '.' + ext, dpi=80)
 	plt.close(fig)
 
-def em_avb_experiment(filepath, title, ys, ext='png'):
+def emvb_experiment(filepath, title, ys, ext='png'):
 	x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
 
 	fig = plt.figure(figsize = (9.5, 5), dpi=80)
@@ -130,6 +130,55 @@ def em_avb_experiment(filepath, title, ys, ext='png'):
 
 	ax2 = fig.add_subplot(1, 2, 2, title='critic')
 	ax2.plot(x, ys[0])
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
+# Plot AIS for an EMVB experiment
+def emvb_ais(filepath, title, epochs_ys, ys, epochs_ais, ais, ext='png'):
+	#x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
+
+	fig = plt.figure(figsize = (9.5, 5), dpi=80)
+	fig.suptitle(title)
+
+	ax1 = fig.add_subplot(1, 2, 1, title='bounds')
+	ax1.plot(epochs_ys, ys[1], label='ELBO-like', color='red')
+	ax1.plot(epochs_ais, ais, label='AIS', color='blue')
+	ax1.legend()
+
+	ax2 = fig.add_subplot(1, 2, 2, title='critic')
+	ax2.plot(epochs_ys, ys[0])
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
+# Plot AIS for an AVB experiment
+def avb_ais(filepath, title, epochs_ys, ys, epochs_ais, ais, ext='png'):
+	#x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
+
+	fig = plt.figure(figsize = (9.5, 5), dpi=80)
+	fig.suptitle(title)
+
+	ax1 = fig.add_subplot(1, 2, 1, title='bounds')
+	ax1.plot(epochs_ys, ys[1], label='ELBO', color='red')
+	ax1.plot(epochs_ais, ais, label='AIS', color='blue')
+	ax1.legend()
+
+	ax2 = fig.add_subplot(1, 2, 2, title='discriminator')
+	ax2.plot(epochs_ys, ys[0])
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
+# Plot AIS for an SVB experiment
+def svb_ais(filepath, title, epochs_ys, ys, epochs_ais, ais, ext='png'):
+	fig = plt.figure(figsize = (5, 5), dpi=80)
+	fig.suptitle(title)
+
+	ax1 = fig.add_subplot(1, 1, 1, title='bounds')
+	ax1.plot(epochs_ys, ys, label='ELBO', color='red')
+	ax1.plot(epochs_ais, ais, label='AIS', color='blue')
+	ax1.legend()
 
 	fig.savefig(filepath + '.' + ext, dpi=80)
 	plt.close(fig)

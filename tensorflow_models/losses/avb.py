@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -43,7 +43,7 @@ def loss(lg_p_x_given_z, discriminator, prior_discriminator, name):
 
 	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/discriminator')
 
-def create(name='train'):
+def create(name='train', settings=None):
 	lg_p_x_given_z = tf_models.get_output(name + '/p_x_given_z/log_prob')
 	discriminator = tf_models.get_output(name + '/discriminator/generator')
 	prior_discriminator = tf_models.get_output(name + '/discriminator/prior')

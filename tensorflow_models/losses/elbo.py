@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -35,7 +35,7 @@ def loss(lg_p_x_given_z, lg_p_z, lg_q_z_given_x, name):
 
 	return tf.identity(-tf.reduce_mean(reconstruction_term - regularizer_term), name=name+'/elbo')
 
-def create(name='train'):
+def create(name='train', settings=None):
 	lg_p_x_given_z = tf_models.get_output(name + '/p_x_given_z/log_prob')
 	lg_p_z = tf_models.get_output(name + '/p_z/log_prob')
 	lg_q_z_given_x = tf_models.get_output(name + '/q_z_given_x/log_prob')

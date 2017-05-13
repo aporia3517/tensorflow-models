@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -44,7 +44,7 @@ def loss(critic_real, critic_fake, critic_interpolated, interpolated, name):
 
 	return tf.identity(critic_objective, name=name+'/critic'), tf.identity(generator_objective, name=name+'/generator')
 
-def create(name='train'):
+def create(name='train', settings=None):
 	critic_real = tf_models.get_output(name + '/p_x/critic_real')
 	critic_fake = tf_models.get_output(name + '/p_x/critic_fake')
 	critic_interpolated = tf_models.get_output(name + '/p_x/critic_interpolated')

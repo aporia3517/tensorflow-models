@@ -33,7 +33,7 @@ import tensorflow_models as tf_models
 # lg_p_x_given_z ~ batch_size x 784
 # adversary ~ ?
 # prior_adversary ~ ?
-def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name):	
+def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name, scale, transform):	
 	# Eq (3.9)
 	# NOTE: Take negative since we are minimizing
 
@@ -70,7 +70,10 @@ def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name):
 	D_loss = tf.reduce_mean(minus_EM + grad_pen)
 
 	# TODO: Be able to change scaling factor in settings file!
-	regu_term = -tf.sqrt(tf.abs(minus_EM)/2.) * 100.
+	if transform == 'sqrt':
+		regu_term = -tf.sqrt(tf.abs(minus_EM)/2.) * scale
+	elif transform == 'id':
+		regu_term = -tf.abs(minus_EM) * scale
 	elbo_loss = tf.reduce_mean(-loglike - regu_term)
 
 	#discriminator_loss = -tf.reduce_mean(prior_critic - critic)
@@ -79,7 +82,7 @@ def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name):
 	#return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/critic')
 	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(D_loss, name=name+'/critic')
 
-def create(name='train'):
+def create(name='train', settings=None):
 	#print('outputs', [op.name for op in tf.get_collection(tf_models.GraphKeys.OUTPUTS)])
 
 	lg_p_x_given_z = tf_models.get_output(name + '/p_x_given_z/log_prob')
@@ -91,7 +94,7 @@ def create(name='train'):
 	#x = tf_models.get_output(name + '/x')
 	x = get_input(name)
 
-	return loss(lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, x, name=name)
+	return loss(lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, x, name, settings['em_scale'], settings['em_transform'])
 
 def get_input(name):
 	ops = tf.get_collection(tf_models.GraphKeys.INPUTS)

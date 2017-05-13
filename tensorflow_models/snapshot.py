@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -36,6 +36,22 @@ def save_results(filepath, epoch, results):
 	results_filepath = filepath + '-' + str(epoch) + '.results'
 	with open(results_filepath, 'wb') as f:
 		pickle.dump(results, f, protocol = pickle.HIGHEST_PROTOCOL)
+
+# Save results so we can plot them later and resume from snapshots
+def save_ais(filepath, settings, ais, ais_epochs):
+	results_filepath = filepath + '-' + str(settings['ais_start']) + '-' + str(settings['ais_end']) + '.results'
+	with open(results_filepath, 'wb') as f:
+		pickle.dump((ais, ais_epochs), f, protocol = pickle.HIGHEST_PROTOCOL)
+
+def load_ais(filepath):
+	results_filepath = filepath + '.results'
+	print(results_filepath)
+	if not tf_data.utils.file.exists(results_filepath):
+		raise IOError('Results file at epoch {} does not exist'.format(epoch))
+
+	with open(results_filepath, 'rb') as f:
+		ais, ais_epochs = pickle.load(f)
+		return ais, ais_epochs
 
 def load_results(filepath):
 	results_filepath = filepath + '.results'
