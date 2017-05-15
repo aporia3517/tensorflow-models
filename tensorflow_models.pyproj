@@ -88,6 +88,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="trainers\__init__.py" />
+    <Compile Include="visualization\plot_code.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="visualization\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>
@@ -98,6 +104,7 @@
     <Folder Include="losses" />
     <Folder Include="models" />
     <Folder Include="evaluation\" />
+    <Folder Include="visualization\" />
     <Folder Include="optimizers" />
     <Folder Include="trainers\" />
   </ItemGroup>

@@ -29,6 +29,7 @@ matplotlib.use('Agg')   # NOTE: This is the backend that does PNG files
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
+from six.moves import range
 
 # TODO: More extensive set of functions to visualize learning, both during and afterwards
 
@@ -73,6 +74,48 @@ def sample_grid(outputfilename, samples, sample_size, ext = 'png', imgrange = (0
 
 	plt.savefig(outputfilename + '.' + ext, dpi=80)
 	plt.close()
+
+def plot_codes(filepath, codes, ext='png'):
+	epoch_count, latent_dimension = codes.shape
+
+	# Normalize codes
+	max_val = np.max(codes)
+	min_val = np.min(codes)
+	range_val = max_val - min_val
+	codes = (codes - min_val) / range_val
+
+	fig = plt.figure(figsize = (latent_dimension / 2., epoch_count), dpi=80)
+
+	for idx in range(epoch_count):
+		ax = fig.add_subplot(epoch_count, 1, idx + 1)
+		ax.imshow(np.reshape(codes[idx, :], (1, latent_dimension)), cmap = 'gray')
+		ax.axis('off')
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
+def plot_reconstructions(filepath, truth, reconstructions, ext='png'):
+	step_count, _, _, _ = reconstructions.shape
+
+	# Normalize codes
+	#max_val = np.max(reconstructions)
+	#min_val = np.min(reconstructions)
+	#range_val = max_val - min_val
+	#reconstructions = (reconstructions - min_val) / range_val
+
+	fig = plt.figure(figsize = (2, step_count), dpi=80)
+
+	for idx in range(step_count):
+		ax = fig.add_subplot(step_count, 2, 2*idx + 1)
+		ax.imshow(np.reshape(truth, (32, 32)), cmap = 'gray')
+		ax.axis('off')
+
+		ax2 = fig.add_subplot(step_count, 2, 2*idx + 2)
+		ax2.imshow(np.reshape(reconstructions[idx], (32, 32)), cmap = 'gray')
+		ax2.axis('off')
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
 
 def gan_experiment(filepath, title, ys, ext='png'):
 	x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
