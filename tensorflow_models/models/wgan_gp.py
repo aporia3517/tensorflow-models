@@ -57,7 +57,10 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	with tf.variable_scope('generator', reuse=reuse):
 		fake = generator_network(settings, eps, is_training=is_training)
 
-	eps = tf.random_uniform([settings['batch_size'], 1], minval=0., maxval=1.)
+	#print(type(tf_models.batchshape(settings)), len())
+
+	eps = tf.random_uniform([settings['batch_size']] + [1]*(len(tf_models.batchshape(settings)) - 1), minval=0., maxval=1.)
+
 	interpolated = tf.identity(eps*inputs + (1. - eps)*fake, name='x/interpolated')
 
 	with tf.variable_scope('critic', reuse=reuse):

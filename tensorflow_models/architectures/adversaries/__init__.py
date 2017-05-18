@@ -33,6 +33,7 @@ from six.moves import range
 # Discriminator for GAN and critic for W-GANS (GAN code takes sigmoid of this!)
 def adversary_mlp(settings, inputs, is_training):
 	architecture = settings['architecture']
+	inputs = tf_models.flatten(inputs)
 	params = architecture['adversary']
 	return tf_models.layers.mlp(
 					inputs,
