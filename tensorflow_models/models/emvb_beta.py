@@ -40,7 +40,7 @@ def create_prior(settings):
 	#return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1, name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
-	encoder_network = settings['architecture']['encoder_network']
+	encoder_network = settings['architecture']['encoder']['fn']
 
 	x_placeholder = tf_models.samples_placeholder()
 	assert(not x_placeholder is None)
@@ -51,7 +51,7 @@ def create_encoder(settings, reuse=True):
 	return encoder
 
 def create_decoder(settings, reuse=True):
-	decoder_network = settings['architecture']['decoder_network']
+	decoder_network = settings['architecture']['decoder']['fn']
 
 	z_placeholder = tf_models.codes_placeholder()
 	assert(not z_placeholder is None)
@@ -64,9 +64,9 @@ def create_decoder(settings, reuse=True):
 	return decoder
 
 def create_probs(settings, inputs, is_training, reuse=False):
-	encoder_network = settings['architecture']['encoder_network']
-	decoder_network = settings['architecture']['decoder_network']
-	critic_network = settings['architecture']['critic_network']
+	encoder_network = settings['architecture']['encoder']['fn']
+	decoder_network = settings['architecture']['decoder']['fn']
+	critic_network = settings['architecture']['adversary']['fn']
 
 	# The noise is distributed i.i.d. N(0, 1)
 	noise = tf.random_normal(tf_models.noiseshape(settings), 0, 1, dtype=tf.float32)
@@ -106,7 +106,7 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	return lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, inputs #x
 
 def lg_likelihood(x, z, settings, reuse=True, is_training=False):
-	decoder_network = settings['architecture']['decoder_network']
+	decoder_network = settings['architecture']['decoder']['fn']
 
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):

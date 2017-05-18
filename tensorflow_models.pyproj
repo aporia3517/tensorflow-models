@@ -19,6 +19,27 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="architectures\adversaries\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="architectures\latent\generators.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="architectures\latent\params.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="architectures\latent\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="architectures\observation\params.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="architectures\observation\generators.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="architectures\observation\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="architectures\__init__.py" />
     <Compile Include="contexts\__init__.py" />
     <Compile Include="evaluation\ais.py" />
@@ -54,15 +75,24 @@
     <Compile Include="models\avb_beta.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="models\avb_vae.py" />
+    <Compile Include="models\avb_normal.py" />
     <Compile Include="models\emvb_beta.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="models\emvb_vae.py">
+    <Compile Include="models\emvb_normal.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\gan.py" />
     <Compile Include="models\vae.py" />
+    <Compile Include="models\vae_beta_obs.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\vae_mubeta_obs.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\vae_normal_obs.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\wgan_gp.py">
       <SubType>Code</SubType>
     </Compile>
@@ -98,6 +128,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="architectures\" />
+    <Folder Include="architectures\latent\" />
+    <Folder Include="architectures\adversaries\" />
+    <Folder Include="architectures\observation\" />
     <Folder Include="contexts" />
     <Folder Include="inference" />
     <Folder Include="layers" />

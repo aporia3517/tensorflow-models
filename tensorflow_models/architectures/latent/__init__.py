@@ -24,18 +24,5 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import importlib
-
-import tensorflow as tf
-import tensorflow_models as tf_models
-
-def create(settings):
-	optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + settings['optimizer'])
-	train_elbo_loss = tf_models.get_loss('train/elbo')
-	step = tf_models.global_step()
-
-	if not settings['optimizer'] is 'adam':
-		train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], step=step, name='elbo')
-	else:
-		train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], step=step, name='elbo', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
-	return train_op
+import tensorflow_models.architectures.latent.params
+import tensorflow_models.architectures.latent.generators

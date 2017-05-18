@@ -57,11 +57,11 @@ def create_decoder(settings, reuse=True):
 	assert(not z_placeholder is None)
 
 	with tf.variable_scope('decoder', reuse=reuse):
-		logits_x = decoder_network(settings, z_placeholder, is_training=False)
-		#dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x)
-		#decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
-	#return decoder
-	return tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
+		logits_mean, logits_alpha_plus_beta = decoder_network(settings, z_placeholder, is_training=False)
+		dist_x_given_z = tf.contrib.distributions.Beta(concentration1=tf_models.flatten(tf.nn.sigmoid(logits_mean) * tf.nn.softplus(logits_alpha_plus_beta)), concentration0=tf_models.flatten((1. - tf.nn.sigmoid(logits_mean)) * tf.nn.softplus(logits_alpha_plus_beta)))
+		decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
+	return decoder
+	#return tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
 
 def create_probs(settings, inputs, is_training, reuse=False):
 	encoder_network = settings['architecture']['encoder']['fn']
@@ -80,8 +80,14 @@ def create_probs(settings, inputs, is_training, reuse=False):
 
 	# Use generator to determine mean of Bernoulli distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
-		logits_x = decoder_network(settings, z_sample, is_training=is_training)
-	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x))
+		logits_mean, logits_alpha_plus_beta = decoder_network(settings, z_sample, is_training=is_training)
+	dist_x_given_z = tf.contrib.distributions.Beta(concentration1=tf_models.flatten(tf.nn.sigmoid(logits_mean) * tf.nn.softplus(logits_alpha_plus_beta)), concentration0=tf_models.flatten((1. - tf.nn.sigmoid(logits_mean)) * tf.nn.softplus(logits_alpha_plus_beta)))
+
+	#print('*** Debugging ***')
+	#print('mean_x.shape', mean_x.shape)
+	#print('diag_stdev_x.shape', diag_stdev_x.shape)
+	#print('dist_x_given_z.sample().shape', dist_x_given_z.sample().shape)
+	#print('dist_x_given_z.log_prob(tf_models.flatten(inputs)).shape', dist_x_given_z.log_prob(tf_models.flatten(inputs)).shape)
 	
 	# NOTE: x | z is defined as over each pixel separate, where prior on z is a multivariate
 	# Hence the need to do the tf.reduce_sum op on the former to get down to a single number for each sample
@@ -103,3 +109,4 @@ def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 def lg_prior(z, settings, reuse=True, is_training=False):
 	dist_prior = tf_models.standard_normal(z.shape)
 	return dist_prior.log_prob(z)
+

@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -42,7 +42,7 @@ def create_prior(settings):
 def create_decoder(settings, reuse=True):
 	print('reuse in create_decoder', reuse)
 
-	generator_network = settings['architecture']['generator_network']
+	generator_network = settings['architecture']['decoder']['fn']
 
 	z_placeholder = tf_models.codes_placeholder()
 	assert(not z_placeholder is None)
@@ -52,8 +52,8 @@ def create_decoder(settings, reuse=True):
 	return decoder
 
 def create_probs(settings, inputs, is_training, reuse=False):
-	generator_network = settings['architecture']['generator_network']
-	discriminator_network = settings['architecture']['discriminator_network']
+	generator_network = settings['architecture']['decoder']['fn']
+	discriminator_network = settings['architecture']['adversary']['fn']
 
 	eps = tf.random_uniform(tf_models.latentshape(settings), minval=-1., maxval=1., dtype=tf.float32)
 

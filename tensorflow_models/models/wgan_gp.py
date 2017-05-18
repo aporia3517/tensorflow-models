@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -39,7 +39,7 @@ def create_prior(settings):
 	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), name='p_z/sample')
 
 def create_decoder(settings, reuse=True):
-	generator_network = settings['architecture']['generator_network']
+	generator_network = settings['architecture']['decoder']['fn']
 
 	z_placeholder = tf_models.codes_placeholder()
 	assert(not z_placeholder is None)
@@ -49,8 +49,8 @@ def create_decoder(settings, reuse=True):
 	return decoder
 
 def create_probs(settings, inputs, is_training, reuse=False):
-	generator_network = settings['architecture']['generator_network']
-	critic_network = settings['architecture']['critic_network']
+	generator_network = settings['architecture']['decoder']['fn']
+	critic_network = settings['architecture']['adversary']['fn']
 
 	eps = tf.random_uniform(tf_models.latentshape(settings), minval=-1., maxval=1., dtype=tf.float32)
 

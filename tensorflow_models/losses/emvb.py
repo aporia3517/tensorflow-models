@@ -74,6 +74,8 @@ def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name, scale, transform):
 		regu_term = -tf.sqrt(tf.abs(minus_EM)/2.) * scale
 	elif transform == 'id':
 		regu_term = -tf.abs(minus_EM) * scale
+	elif transform == 'sq':
+		regu_term = -tf.square(minus_EM/2.) * scale
 	elbo_loss = tf.reduce_mean(-loglike - regu_term)
 
 	#discriminator_loss = -tf.reduce_mean(prior_critic - critic)
