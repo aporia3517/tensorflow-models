@@ -43,6 +43,8 @@ class Trainer(BaseTrainer):
 		train_discriminator_loss_op = tf_models.get_loss('train/discriminator')
 		#test_discriminator_loss_op = tf_models.get_loss('test/discriminator')
 
+		discriminator_steps = self._settings['adversary_steps']
+
 		def train(count_steps):
 			total_generator = 0.
 			total_discriminator = 0.
@@ -51,8 +53,8 @@ class Trainer(BaseTrainer):
 
 				# Try interweaving
 				_, this_generator = self.sess.run([generator_train_op, train_generator_loss_op])
-				#for jdx in range(3):
-				_, this_discriminator = self.sess.run([discriminator_train_op, train_discriminator_loss_op])
+				for jdx in range(discriminator_steps):
+					_, this_discriminator = self.sess.run([discriminator_train_op, train_discriminator_loss_op])
 
 				total_discriminator += this_discriminator
 				total_generator += this_generator

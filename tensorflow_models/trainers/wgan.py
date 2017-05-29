@@ -43,7 +43,7 @@ class Trainer(BaseTrainer):
 		train_critic_loss_op = tf_models.get_loss('train/critic')
 		test_critic_loss_op = tf_models.get_loss('test/critic')
 
-		a_per_g = self._settings['adversary_steps_per_generator_step']
+		a_per_g = self._settings['adversary_steps']
 
 		def train(count_steps):
 			total_generator = 0.

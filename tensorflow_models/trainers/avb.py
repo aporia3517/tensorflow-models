@@ -36,6 +36,8 @@ class Trainer(BaseTrainer):
 
 	# Create the functions that perform learning and evaluation
 	def learning_hooks(self):
+		discriminator_steps = self._settings['adversary_steps']
+
 		elbo_train_op = tf_models.get_inference('elbo_like')
 		train_elbo_loss_op = tf_models.get_loss('train/elbo_like')
 
@@ -52,8 +54,8 @@ class Trainer(BaseTrainer):
 				# Try interweaving
 				#_, this_elbo, _, this_adversarial = self.sess.run([elbo_train_op, elbo_loss_op, adversarial_train_op, adversarial_loss_op])
 				_, this_elbo = self.sess.run([elbo_train_op, train_elbo_loss_op])
-				#for jdx in range(10):
-				_, this_discriminator = self.sess.run([discriminator_train_op, train_discriminator_loss_op])
+				for jdx in range(discriminator_steps):
+					_, this_discriminator = self.sess.run([discriminator_train_op, train_discriminator_loss_op])
 				total_elbo += this_elbo
 				total_discriminator += this_discriminator
 			return total_elbo / count_steps, total_discriminator / count_steps

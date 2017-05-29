@@ -112,6 +112,9 @@
     <Compile Include="trainers\emvb.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="trainers\emvb_adaptive.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="trainers\gan.py" />
     <Compile Include="trainers\svb.py" />
     <Compile Include="trainers\wgan.py">

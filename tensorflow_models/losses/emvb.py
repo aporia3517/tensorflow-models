@@ -68,21 +68,74 @@ def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name, scale, transform):
 
 	minus_EM = tf.reduce_mean(D_fake) - tf.reduce_mean(D_real)
 	D_loss = tf.reduce_mean(minus_EM + grad_pen)
+	EM = tf.abs(minus_EM)
+	rescaled_EM = EM * scale
 
 	# TODO: Be able to change scaling factor in settings file!
 	if transform == 'sqrt':
-		regu_term = -tf.sqrt(tf.abs(minus_EM)/2.) * scale
+		regu_term = -tf.sqrt(tf.abs(minus_EM)) * scale
 	elif transform == 'id':
 		regu_term = -tf.abs(minus_EM) * scale
 	elif transform == 'sq':
-		regu_term = -tf.square(minus_EM/2.) * scale
-	elbo_loss = tf.reduce_mean(-loglike - regu_term)
+		regu_term = -tf.square(minus_EM) * scale
+	elif transform == 'hypoth1':
+		regu_term = -(tf.square(minus_EM) + tf.pow(tf.abs(minus_EM), 4) / 9.) * scale
+	elif transform == 'hypoth2':
+		regu_term = -(tf.square(minus_EM) + tf.pow(tf.abs(minus_EM), 4) / 18.) * scale
+	elif transform == 'hypoth3':
+		regu_term = -(tf.square(minus_EM) + tf.pow(tf.abs(minus_EM), 4) / 18.) * scale
+	elif transform == 'hypoth4':
+		regu_term = -tf.pow(tf.abs(minus_EM), 2.5) * scale
+	elif transform == 'hypoth5':
+		regu_term = -tf.pow(tf.abs(minus_EM), 3.) * scale
+	elif transform == 'hypoth6':
+		regu_term = -tf.pow(tf.abs(minus_EM), 4.) * scale
+	elif transform == 'hypoth7':
+		#regu_term = -(tf.abs(minus_EM) * tf.log((1 + tf.abs(minus_EM)) / (1 - tf.abs(minus_EM)))) * scale
+		regu_term = -(tf.square(minus_EM) / 2. + tf.pow(tf.abs(minus_EM), 4) / 36. + tf.pow(tf.abs(minus_EM), 6) / 288.) * scale
+	elif transform == 'hypoth8':
+		regu_term = -(tf.square(minus_EM) / 2. + tf.pow(tf.abs(minus_EM), 4) / 36.) * scale
+	elif transform == 'hypoth9':
+		regu_term = -(1 + EM + tf.square(EM) / 2. + tf.pow(EM, 3) / 6. + tf.pow(EM, 4) / 24.) * scale
+	elif transform == 'hypoth10':
+		regu_term = -(tf.square(EM) / 2. + tf.pow(EM, 4.) / 24.) * scale
+	elif transform == 'hypoth11':
+		regu_term = -(tf.square(EM) / 2. + tf.pow(EM, 3) / 6. + tf.pow(EM, 4.) / 24.) * scale
+	elif transform == 'hypoth12':
+		regu_term = -(tf.square(EM) / 2. + tf.pow(EM, 3) / 6.) * scale
+	elif transform == 'hypoth13':
+		regu_term = -(tf.square(EM) / 2. + tf.pow(EM, 4.) / 24. + tf.pow(EM, 6.) / 120.) * scale
+	elif transform == 'hypoth14':
+		regu_term = -(tf.exp(EM * scale) - 1)
+	elif transform == 'hypoth15':
+		regu_term = -(rescaled_EM + tf.square(rescaled_EM) / 2. + tf.pow(rescaled_EM, 3.) / 6.)
+	elif transform == 'hypoth16':
+		regu_term = -(rescaled_EM + tf.square(rescaled_EM) / 2. + tf.pow(rescaled_EM, 3.) / 6. + tf.pow(EM, 4.) / 24.)
+	elif transform == 'hypoth17':
+		regu_term = -(rescaled_EM + tf.square(rescaled_EM)  + tf.pow(rescaled_EM, 3.))
+	elif transform == 'hypoth18':
+		regu_term = -(rescaled_EM + tf.square(rescaled_EM / 2.))
+	elif transform == 'hypoth19':
+		regu_term = -(tf.square(minus_EM) / 2. + tf.pow(tf.abs(minus_EM), 4) / 40.) * scale
+	elif transform == 'hypoth20':
+		regu_term = -(tf.square(minus_EM) / 2. + tf.pow(tf.abs(minus_EM), 4) / 50.) * scale
+	elif transform == 'hypoth21':
+		regu_term = -(tf.square(minus_EM) / 2. + tf.pow(tf.abs(minus_EM), 4) / 30.) * scale
+	elif transform == 'hypoth22':
+		regu_term = -(tf.square(minus_EM) / 2. + tf.pow(tf.abs(minus_EM), 3) / 36.) * scale
+
+	#print('*** DEBUG ***')
+	#print('loglike.shape', loglike.shape)
+	#print('regu_term.shape', regu_term.shape)
+	#raise Exception()
+
+	elbo_loss = tf.reduce_mean(-loglike) - regu_term
 
 	#discriminator_loss = -tf.reduce_mean(prior_critic - critic)
 	#elbo_loss = -tf.reduce_mean(lg_p_x_given_z) + discriminator_loss	
 
 	#return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/critic')
-	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(D_loss, name=name+'/critic')
+	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(D_loss, name=name+'/critic'), tf.identity(-tf.reduce_mean(loglike), name=name+'/nll'), tf.identity(regu_term, name=name+'/regularizer')
 
 def create(name='train', settings=None):
 	#print('outputs', [op.name for op in tf.get_collection(tf_models.GraphKeys.OUTPUTS)])

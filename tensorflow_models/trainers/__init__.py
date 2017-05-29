@@ -33,7 +33,7 @@ import tensorflow_datasets as tf_data
 import tensorflow_models as tf_models
 
 class BaseTrainer(object):
-	def __init__(self, settings, paths, context):
+	def __init__(self, settings, paths, context, ais_ops=None):
 		self._settings = settings
 		self._context = context
 		self.sess = self._context.sess
@@ -43,6 +43,7 @@ class BaseTrainer(object):
 		self._initialize_counters()
 		self._decoder = tf_models.get_decoder()
 		self._z_placeholder = tf_models.codes_placeholder()
+		self._ais_ops = ais_ops
 
 		if not self._decoder is None:
 			assert(settings['batch_size'] >= settings['sample_size'])

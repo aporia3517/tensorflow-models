@@ -56,6 +56,7 @@ def load_ais(filepath):
 def load_results(filepath):
 	results_filepath = filepath + '.results'
 	#print(results_filepath)
+	#print(results_filepath)
 	if not tf_data.utils.file.exists(results_filepath):
 		raise IOError('Results file at epoch {} does not exist'.format(epoch))
 

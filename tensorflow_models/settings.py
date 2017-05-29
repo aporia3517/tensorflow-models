@@ -55,7 +55,7 @@ def defaults():
 		'adam_beta1': 0.9, # Default value of first Adam beta parameter
 		'adam_beta2': 0.999, # Default value of second Adam beta parameter
 		'gradient_penalty': 10., # Weight on gradient penalty in improved W-GAN
-		'adversary_steps_per_generator_step': 1, # How many steps to take of the adversary (in GANs, W-GANs, etc.) per step of the generator
+		'adversary_steps': 1, # How many steps to take of the adversary (in GANs, W-GANs, etc.) per step of the generator
 		#'clip_gradients': True,	# Whether to clip each individual gradient element
 		#'normalize_gradients': True,	# Whether to normalize sum of gradients if it exceeds a threshold
 		#'gradient_threshold': 1.0,	# Threshold for clipping each element of gradient

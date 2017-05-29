@@ -132,6 +132,15 @@ def gan_experiment(filepath, title, ys, ext='png'):
 	fig.savefig(filepath + '.' + ext, dpi=80)
 	plt.close(fig)
 
+def plot_representations(filepath, tsnes, labels, ext='png'):
+	plt.figure(figsize = (9, 9), dpi=80)
+	plt.title('Visualizing with t-SNE')
+
+	plt.scatter(tsnes[:, 0], tsnes[:, 1], c=labels)
+
+	plt.savefig(filepath + '.' + ext, dpi=80)
+	plt.close()
+
 def wgan_experiment(filepath, title, ys, ext='png'):
 	x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
 
