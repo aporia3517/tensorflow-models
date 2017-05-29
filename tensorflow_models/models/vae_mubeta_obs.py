@@ -97,13 +97,14 @@ def create_probs(settings, inputs, is_training, reuse=False):
 
 	return lg_p_x_given_z, lg_p_z, lg_q_z_given_x
 
+# TODO: Fix this to be Beta distribution!
 def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	decoder_network = settings['architecture']['decoder']['fn']
 
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
 			logits_x = decoder_network(settings, z, is_training=is_training)
-	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x))
+	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
 def lg_prior(z, settings, reuse=True, is_training=False):
