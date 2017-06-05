@@ -51,6 +51,9 @@
     <Compile Include="inference\emvb.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="inference\emvb_final.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="inference\gan.py" />
     <Compile Include="inference\svb.py" />
     <Compile Include="inference\wgan.py">
@@ -64,6 +67,9 @@
     <Compile Include="losses\emvb.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="losses\emvb_final.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="losses\gan.py" />
     <Compile Include="losses\wgan_gp.py">
       <SubType>Code</SubType>
@@ -72,14 +78,29 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="losses\__init__.py" />
+    <Compile Include="models\avb_bernoulli.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\avb_beta.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\avb_normal.py" />
+    <Compile Include="models\avb_relaxed.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\emvb_bernoulli.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\emvb_beta.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="models\emvb_final.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\emvb_normal.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\emvb_relaxed.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\gan.py" />
@@ -91,6 +112,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\vae_normal_obs.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\vae_relaxed.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\wgan_gp.py">
@@ -113,6 +137,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="trainers\emvb_adaptive.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="trainers\emvb_final.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="trainers\gan.py" />
