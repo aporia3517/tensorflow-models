@@ -36,7 +36,7 @@ def create_placeholders(settings):
 
 def create_prior(settings):
 	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32) * 2. - 1, name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
 	encoder_network = settings['architecture']['encoder']['fn']
@@ -49,7 +49,7 @@ def create_encoder(settings, reuse=True):
 	with tf.variable_scope('encoder', reuse=reuse):
 		logits_z = encoder_network(settings, x_placeholder, noise, is_training=False)
 		dist_z_given_x = tf.contrib.distributions.RelaxedBernoulli(temperature, logits=logits_z)
-		encoder = tf.identity(tf.cast(dist_z_given_x.sample(), dtype=tf.float32), name='q_z_given_x_eps/sample')
+		encoder = tf.identity(tf.cast(dist_z_given_x.sample(), dtype=tf.float32) * 2. - 1, name='q_z_given_x_eps/sample')
 	return encoder
 
 def create_decoder(settings, reuse=True):
@@ -79,11 +79,11 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	with tf.variable_scope('encoder', reuse=reuse):
 		logits_z = encoder_network(settings, inputs, noise, is_training=is_training)
 		dist_z_given_x = tf.contrib.distributions.RelaxedBernoulli(temperature, logits=logits_z)
-		z_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32)
+		z_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32) * 2. - 1
 
 	# The prior on z is also i.i.d. N(0, 1)
 	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings))
+	z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1
 		
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
@@ -112,4 +112,4 @@ def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 
 def lg_prior(z, settings, reuse=True, is_training=False):
 	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob((z + 1.)/2.)), 1)

@@ -24,19 +24,29 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import importlib
-
+import numpy as np
 import tensorflow as tf
 import tensorflow_models as tf_models
 
-def create(settings):
-	optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + settings['optimizer'])
-	train_elbo_loss = tf_models.get_loss('train/elbo')
-	step = tf_models.global_step()
+# The basic ELBO loss
+def loss(lg_p_x_given_z, lg_p_z, lg_q_z_given_x, lg_p_x_given_z_discrete, lg_p_z_discrete, lg_q_z_given_x_discrete, name):
+	reconstruction_term = lg_p_x_given_z + lg_p_z
+	regularizer_term = lg_q_z_given_x
+	elbo = tf.identity(-tf.reduce_mean(reconstruction_term - regularizer_term), name=name+'/elbo')
 
-	if not settings['optimizer'] is 'adam':
-		train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], step=step, name='elbo')
-	else:
-		train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], step=step, name='elbo', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
+	reconstruction_term = lg_p_x_given_z_discrete + lg_p_z_discrete
+	regularizer_term = lg_q_z_given_x_discrete
+	elbo_discrete = tf.identity(-tf.reduce_mean(reconstruction_term - regularizer_term), name=name+'/elbo_discrete')
 
-	return train_op
+	return elbo, elbo_discrete
+
+def create(name='train', settings=None):
+	lg_p_x_given_z = tf_models.get_output(name + '/p_x_given_z/log_prob')
+	lg_p_z = tf_models.get_output(name + '/p_z/log_prob')
+	lg_q_z_given_x = tf_models.get_output(name + '/q_z_given_x/log_prob')
+
+	lg_p_x_given_z_discrete = tf_models.get_output(name + '/p_x_given_z/log_prob_discrete')
+	lg_p_z_discrete = tf_models.get_output(name + '/p_z/log_prob_discrete')
+	lg_q_z_given_x_discrete = tf_models.get_output(name + '/q_z_given_x/log_prob_discrete')
+
+	return loss(lg_p_x_given_z, lg_p_z, lg_q_z_given_x, lg_p_x_given_z_discrete, lg_p_z_discrete, lg_q_z_given_x_discrete, name=name)

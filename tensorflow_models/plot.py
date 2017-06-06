@@ -94,6 +94,98 @@ def plot_codes(filepath, codes, ext='png'):
 	fig.savefig(filepath + '.' + ext, dpi=80)
 	plt.close(fig)
 
+def plot_violins(filepath, codes, ext='png'):
+	sample_count, latent_dimension = codes.shape
+
+	# fake data
+	fs = 10  # fontsize
+	pos = list(range(latent_dimension))
+
+	# Sort latent dimensions by median
+	medians = np.median(codes, axis=0)
+
+	#print('medians.shape', medians.shape)
+	#print('pos.shape', np.array(pos).shape)
+
+	latent_dims = np.transpose(np.stack([pos, medians]))
+
+	#print('latent_dims.shape', latent_dims.shape)
+
+	sorted_latent_dims = latent_dims[latent_dims[:,1].argsort()]
+
+	sorted_pos = sorted_latent_dims[:,0]
+	#print(type(sorted_pos))
+	#print(sorted_pos.shape)
+	#print('test', sorted_pos[0])
+
+	data = [codes[:, int(sorted_pos[i])] for i in pos]
+
+	plt.figure(figsize = (70, 10), dpi=360)
+	plt.violinplot(data, pos, points=100, widths=0.5, showmeans=False, showmedians=True, showextrema=True, bw_method=0.5) # 
+	plt.savefig(filepath + '.' + ext, dpi=360)
+	plt.close()
+
+	"""for i in range(10):
+		axes[0, i].
+
+		axes[0, 0].set_title('Custom violinplot 1', fontsize=fs)
+
+	axes[0, 1].violinplot(data, pos, points=40, widths=0.5,
+                      showmeans=True, showextrema=True, showmedians=True,
+                      bw_method='silverman')
+	axes[0, 1].set_title('Custom violinplot 2', fontsize=fs)
+
+	axes[0, 2].violinplot(data, pos, points=60, widths=0.7, showmeans=True,
+                      showextrema=True, showmedians=True, bw_method=0.5)
+	axes[0, 2].set_title('Custom violinplot 3', fontsize=fs)
+
+	axes[1, 0].violinplot(data, pos, points=80, vert=False, widths=0.7,
+                      showmeans=True, showextrema=True, showmedians=True)
+	axes[1, 0].set_title('Custom violinplot 4', fontsize=fs)
+
+	axes[1, 1].violinplot(data, pos, points=100, vert=False, widths=0.9,
+                      showmeans=True, showextrema=True, showmedians=True,
+                      bw_method='silverman')
+	axes[1, 1].set_title('Custom violinplot 5', fontsize=fs)
+
+	axes[1, 2].violinplot(data, pos, points=200, vert=False, widths=1.1,
+                      showmeans=True, showextrema=True, showmedians=True,
+                      bw_method=0.5)
+	axes[1, 2].set_title('Custom violinplot 6', fontsize=fs)
+
+	for ax in axes.flatten():
+    ax.set_yticklabels([])
+
+	fig.suptitle("Violin Plotting Examples")
+	fig.subplots_adjust(hspace=0.4)
+	plt.show()"""
+
+def plot_encoding(filepath, codes, labels, ext='png'):
+	count_samples, latent_dimension = codes.shape
+
+	# Normalize codes
+	max_val = np.max(codes)
+	min_val = np.min(codes)
+	range_val = max_val - min_val
+	codes = (codes - min_val) / range_val
+	print('codes.shape', codes.shape)
+
+	fig = plt.figure(figsize = (10, 5), dpi=80)
+
+	for idx in range(10):
+		ax = fig.add_subplot(1, 10, idx + 1)
+
+		subcodes = codes[labels == idx, :]
+		#print('subcodes.shape', subcodes.shape)
+		#print(subcodes[0])
+
+		ax.imshow(subcodes, cmap = 'gray')
+		#plt.xlabel(str(idx))
+		ax.axis('off')
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
 def plot_reconstructions(filepath, truth, reconstructions, ext='png'):
 	step_count, _, _, _ = reconstructions.shape
 

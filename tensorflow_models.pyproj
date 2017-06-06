@@ -56,6 +56,9 @@
     </Compile>
     <Compile Include="inference\gan.py" />
     <Compile Include="inference\svb.py" />
+    <Compile Include="inference\svb_concrete.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="inference\wgan.py">
       <SubType>Code</SubType>
     </Compile>
@@ -64,6 +67,9 @@
     <Compile Include="layers\__init__.py" />
     <Compile Include="losses\avb.py" />
     <Compile Include="losses\elbo.py" />
+    <Compile Include="losses\elbo_concrete.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="losses\emvb.py">
       <SubType>Code</SubType>
     </Compile>
@@ -84,6 +90,9 @@
     <Compile Include="models\avb_beta.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="models\avb_concrete.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\avb_normal.py" />
     <Compile Include="models\avb_relaxed.py">
       <SubType>Code</SubType>
@@ -92,6 +101,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\emvb_beta.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\emvb_concrete.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\emvb_final.py">
@@ -106,6 +118,9 @@
     <Compile Include="models\gan.py" />
     <Compile Include="models\vae.py" />
     <Compile Include="models\vae_beta_obs.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\vae_concrete.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\vae_mubeta_obs.py">
@@ -144,6 +159,9 @@
     </Compile>
     <Compile Include="trainers\gan.py" />
     <Compile Include="trainers\svb.py" />
+    <Compile Include="trainers\svb_concrete.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="trainers\wgan.py">
       <SubType>Code</SubType>
     </Compile>
