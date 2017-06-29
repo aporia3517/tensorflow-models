@@ -187,7 +187,7 @@ def plot_encoding(filepath, codes, labels, ext='png'):
 	plt.close(fig)
 
 def plot_reconstructions(filepath, truth, reconstructions, ext='png'):
-	step_count, _, _, _ = reconstructions.shape
+	step_count, width, height, _ = reconstructions.shape
 
 	# Normalize codes
 	#max_val = np.max(reconstructions)
@@ -199,11 +199,11 @@ def plot_reconstructions(filepath, truth, reconstructions, ext='png'):
 
 	for idx in range(step_count):
 		ax = fig.add_subplot(step_count, 2, 2*idx + 1)
-		ax.imshow(np.reshape(truth, (32, 32)), cmap = 'gray')
+		ax.imshow(np.reshape(truth, (width, height)), cmap = 'gray')
 		ax.axis('off')
 
 		ax2 = fig.add_subplot(step_count, 2, 2*idx + 2)
-		ax2.imshow(np.reshape(reconstructions[idx], (32, 32)), cmap = 'gray')
+		ax2.imshow(np.reshape(reconstructions[idx], (width, height)), cmap = 'gray')
 		ax2.axis('off')
 
 	fig.savefig(filepath + '.' + ext, dpi=80)

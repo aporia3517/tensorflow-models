@@ -51,6 +51,8 @@ def load_ais(filepath):
 
 	with open(results_filepath, 'rb') as f:
 		ais, ais_epochs = pickle.load(f)
+		#print(aiss.keys())
+		#ais, ais_epochs = aiss
 		return ais, ais_epochs
 
 def load_results(filepath):

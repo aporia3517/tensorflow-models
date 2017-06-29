@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -24,7 +24,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import importlib
+import importlib, time
 
 import tensorflow as tf
 import numpy as np
@@ -114,6 +114,7 @@ class SessionContext(object):
 
 		if not self._coord is None:
 			self._threads = tf.train.start_queue_runners(sess=self.sess, coord=self._coord)
+			time.sleep(3)
 			self._exception_context.__enter__()
 
 		return self

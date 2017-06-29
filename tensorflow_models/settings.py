@@ -81,6 +81,9 @@ def snapshots_filepath(settings, paths):
 def results_filepath(settings, paths):
 	return os.path.join(paths['results'], filename(settings))
 
+def ais_filepath(settings, paths):
+	return os.path.join(paths['results'], filename(settings)) + '/' + filename(settings)
+
 def samples_filepath(settings, paths):
 	return os.path.join(paths['samples'], filename(settings))
 

@@ -35,12 +35,13 @@ def create_placeholders(settings):
 	return x, z
 
 def create_prior(settings):
-	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), name='p_z/sample')
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature, probs=0.5)
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
-	temperature = 0.5
 	encoder_network = settings['architecture']['encoder']['fn']
+	temperature = 2./3.
 
 	x_placeholder = tf_models.samples_placeholder()
 	assert(not x_placeholder is None)
@@ -62,16 +63,15 @@ def create_decoder(settings, reuse=True):
 		logits_x = decoder_network(settings, z_placeholder, is_training=False)
 		#dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=logits_x, dtype=tf.float32)
 		#decoder = tf.identity(dist_x_given_z.sample(), name='p_x_given_z/sample')
-		decoder = tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
-	return decoder
+	#return decoder
+	return tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
 
 def create_probs(settings, inputs, is_training, reuse=False):
-	temperature = 0.5
+	temperature = 2./3.
 
 	encoder_network = settings['architecture']['encoder']['fn']
 	decoder_network = settings['architecture']['decoder']['fn']
-	critic_network = settings['architecture']['adversary']['fn']
-	discriminator_network = settings['architecture']['adversary_avb']['fn']
+	discriminator_network = settings['architecture']['adversary']['fn']
 
 	# The noise is distributed i.i.d. N(0, 1)
 	noise = tf.random_normal(tf_models.noiseshape(settings), 0, 1, dtype=tf.float32)
@@ -82,10 +82,11 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		dist_z_given_x = tf.contrib.distributions.RelaxedBernoulli(temperature, logits=logits_z)
 		z_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32)
 
-	# The prior on z is Unif(-1, 1)
-	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
+	# The prior on z is also i.i.d. N(0, 1)
+	#dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
+	temperature_prior = 0.5
+	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature_prior)
 	z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings))
-	#z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1.
 		
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
@@ -95,70 +96,30 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	# Log likelihood of reconstructed inputs
 	lg_p_x_given_z = tf.identity(tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(inputs)), 1), name='p_x_given_z/log_prob')
 
-	# Form interpolated variable
-	eps = tf.random_uniform([settings['batch_size'], 1], minval=0., maxval=1.)
-	z_inter = tf.identity(eps*z_prior + (1. - eps)*z_sample, name='z/interpolated')
-
-	# Critic D(x, z) for EMVB learning
-	with tf.variable_scope('critic', reuse=reuse):
-		critic = tf.identity(critic_network(settings, inputs, z_sample, is_training=is_training), name='generator')
-		tf.get_variable_scope().reuse_variables()
-		prior_critic = tf.identity(critic_network(settings, inputs, z_prior, is_training=is_training), name='prior')
-		inter_critic = tf.identity(critic_network(settings, inputs, z_inter, is_training=is_training), name='inter')
-
-	# Discriminator T(x, z) for AVB learning
+	# Discriminator T(x, z)
 	with tf.variable_scope('discriminator', reuse=reuse):
 		discriminator = tf.identity(discriminator_network(settings, inputs, z_sample, is_training=is_training), name='generator')
 		tf.get_variable_scope().reuse_variables()
 		prior_discriminator = tf.identity(discriminator_network(settings, inputs, z_prior, is_training=is_training), name='prior')
 
-	x = tf.identity(inputs, name='x')
-
-	#print('inputs.name', inputs.name)
-
-	return lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, inputs, discriminator, prior_discriminator
+	return lg_p_x_given_z, discriminator, prior_discriminator
 
 def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	decoder_network = settings['architecture']['decoder']['fn']
+	real_z = tf.sigmoid(z)
 
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
-			logits_x = decoder_network(settings, z, is_training=is_training)
+			logits_x = decoder_network(settings, real_z, is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
-
-def lg_encoder(x, z, eps, settings, reuse=True, is_training=False):
-	encoder_network = settings['architecture']['encoder']['fn']
-	temperature = 2./3.
-
-	with tf.variable_scope('model'):
-		with tf.variable_scope('encoder', reuse=reuse):
-			logits_z = encoder_network(settings, x, eps, is_training=is_training)
-	dist_z_given_x = tf.contrib.distributions.Logistic(loc=tf_models.flatten(logits_z)/temperature, scale=tf.constant(1./temperature, shape=logits_z.shape))
-	return tf.reduce_sum(tf_models.flatten(dist_z_given_x.log_prob(z)), 1)
 
 def lg_prior(z, settings, reuse=True, is_training=False):
 	temperature = 0.5
 	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature)
 	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)
 
-def lg_noise(eps, settings, reuse=True, is_training=False):
-	dist_noise = tf.contrib.distributions.Normal(loc=0., scale=1.)
-	return tf.reduce_sum(dist_noise.log_prob(eps), 1)
-
-def sample_noise_op(settings):
-	dist_noise = tf.contrib.distributions.Normal(loc=0., scale=1.)
-	return dist_noise.sample(sample_shape=(settings['batch_size'], settings['noise_dimension']))
-
-def sample_encoder_op_factory(settings, reuse=True, is_training=False):
-	encoder_network = settings['architecture']['encoder']['fn']
-	temperature = 2./3.
-
-	def f(x, eps):
-		with tf.variable_scope('model'):
-			with tf.variable_scope('encoder', reuse=reuse):
-				logits_z = encoder_network(settings, x, eps, is_training=is_training)
-		dist_z_given_x = tf.contrib.distributions.Logistic(loc=tf_models.flatten(logits_z)/temperature, scale=tf.constant(1./temperature, shape=logits_z.shape))
-		return dist_z_given_x.sample()
-
-	return f
+def sample_prior(settings):
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature)
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')

@@ -33,7 +33,7 @@ from six.moves import range
 def kinetic_energy(velocity):
     return 0.5 * tf.reduce_sum(tf.multiply(velocity, velocity), axis=1)
 
-def hamiltonian(position, velocity, log_posterior):
+def hamiltonian(position_z, position_eps, velocity_z, velocity_eps, log_posterior):
 	"""Computes the Hamiltonian of the current position, velocity pair
 		H = U(x) + K(v)
 		U is the potential energy and is = -log_posterior(x)
@@ -52,8 +52,8 @@ def hamiltonian(position, velocity, log_posterior):
 		"""
 	#print('position.shape', position.shape)
 	#print('velocity.shape', position.shape)
-	energy_function = tf.squeeze(-log_posterior(position))
-	return energy_function + kinetic_energy(velocity)
+	energy_function = tf.squeeze(-log_posterior(position_z, position_eps))
+	return energy_function + kinetic_energy(velocity_z) + kinetic_energy(velocity_eps)
 
 def metropolis_hastings_accept(energy_prev, energy_next):
 	#ediff = energy_prev - energy_next
@@ -72,18 +72,22 @@ def metropolis_hastings_accept(energy_prev, energy_next):
 
 	return (tf.exp(ediff) - tf.random_uniform(tf.shape(ediff))) >= 0.0
 
-def simulate_dynamics(initial_pos, initial_vel, stepsize, n_steps, log_posterior):
-	def leapfrog(pos, vel, step, i):
+def simulate_dynamics(initial_pos_z, initial_pos_eps, initial_vel_z, initial_vel_eps, stepsize, n_steps, log_posterior):
+	def leapfrog(pos_z, pos_eps, vel_z, vel_eps, step, i):
 		# TODO: Check whether reduce_sum is correct
-		dE_dpos = tf.gradients(tf.squeeze(-log_posterior(pos)), pos)[0]
-		new_vel = vel - step * dE_dpos
-		new_pos = pos + step * new_vel
-		return [new_pos, new_vel, step, tf.add(i, 1)]
+		dE_dpos = tf.gradients(tf.squeeze(-log_posterior(pos_z, pos_eps)), [pos_z, pos_eps])	#[0]
+		new_vel_z = vel_z - step * dE_dpos[0]
+		new_pos_z = pos_z + step * new_vel_z
 
-	def condition(pos, vel, step, i):
+		new_vel_eps = vel_eps - step * dE_dpos[1]
+		new_pos_eps = pos_eps + step * new_vel_eps
+
+		return [new_pos_z, new_pos_eps, new_vel_z, new_vel_eps, step, tf.add(i, 1)]
+
+	def condition(pos_z, pos_eps, vel_z, vel_eps, step, i):
 		return tf.less(i, n_steps)
 
-	dE_dpos = tf.gradients(tf.squeeze(-log_posterior(initial_pos)), initial_pos)[0]
+	dE_dpos = tf.gradients(tf.squeeze(-log_posterior(initial_pos_z, initial_pos_eps)), [initial_pos_z, initial_pos_eps])
 
 	stepsize = tf.reshape(stepsize, [-1, 1])
 
@@ -92,24 +96,31 @@ def simulate_dynamics(initial_pos, initial_vel, stepsize, n_steps, log_posterior
 	#print('stepsize.shape', stepsize.shape)
 	#print('initial_vel.shape', initial_vel.shape)
 
-	vel_half_step = initial_vel - 0.5 * tf.reshape(stepsize, [-1, 1]) * dE_dpos
-	pos_full_step = initial_pos + tf.reshape(stepsize, [-1, 1]) * vel_half_step
+	vel_half_step_z = initial_vel_z - 0.5 * tf.reshape(stepsize, [-1, 1]) * dE_dpos[0]
+	pos_full_step_z = initial_pos_z + tf.reshape(stepsize, [-1, 1]) * vel_half_step_z
+
+	vel_half_step_eps = initial_vel_eps - 0.5 * tf.reshape(stepsize, [-1, 1]) * dE_dpos[1]
+	pos_full_step_eps = initial_pos_eps + tf.reshape(stepsize, [-1, 1]) * vel_half_step_eps
 
 	#print('vel_half_step.shape', vel_half_step.shape)
 	#print('pos_full_step.shape', pos_full_step.shape)
 	#print('*** critical point ***')
 
 	i = tf.constant(0)
-	final_pos, new_vel, _, _ = tf.while_loop(condition, leapfrog, [pos_full_step, vel_half_step, stepsize, i], parallel_iterations=1)
+	final_pos_z, final_pos_eps, new_vel_z, new_vel_eps, _, _ = tf.while_loop(condition, leapfrog, [pos_full_step_z, pos_full_step_eps, vel_half_step_z, vel_half_step_eps, stepsize, i], parallel_iterations=1)
 
-	dE_dpos = tf.gradients(tf.squeeze(-log_posterior(final_pos)), final_pos)[0]
-	final_vel = new_vel - 0.5 * stepsize * dE_dpos
-	return final_pos, final_vel
+	dE_dpos = tf.gradients(tf.squeeze(-log_posterior(final_pos_z, final_pos_eps)), [final_pos_z, final_pos_eps])
 
-def hmc_step(initial_pos, log_posterior, step_size, num_steps):
-	initial_vel = tf.random_normal(tf.shape(initial_pos))
+	final_vel_z = new_vel_z - 0.5 * stepsize * dE_dpos[0]
+	final_vel_eps = new_vel_eps - 0.5 * stepsize * dE_dpos[1]
 
-	final_pos, final_vel = simulate_dynamics(initial_pos, initial_vel, step_size, num_steps, log_posterior)
+	return final_pos_z, final_pos_eps, final_vel_z, final_vel_eps
+
+def hmc_step(initial_pos_z, initial_pos_eps, log_posterior, step_size, num_steps):
+	initial_vel_z = tf.random_normal(tf.shape(initial_pos_z))
+	initial_vel_eps = tf.random_normal(tf.shape(initial_pos_eps))
+
+	final_pos_z, final_pos_eps, final_vel_z, final_vel_eps = simulate_dynamics(initial_pos_z, initial_pos_eps, initial_vel_z, initial_vel_eps, step_size, num_steps, log_posterior)
 
 	#print('initial_pos.shape', initial_pos.shape)
 	#print('initial_vel.shape', initial_vel.shape)
@@ -117,15 +128,16 @@ def hmc_step(initial_pos, log_posterior, step_size, num_steps):
 	#print('final_vel.shape', final_vel.shape)
 	#print('step_size.shape', step_size.shape)
 
-	energy_prev = hamiltonian(initial_pos, initial_vel, log_posterior),
-	energy_next = hamiltonian(final_pos, final_vel, log_posterior)
+	energy_prev = hamiltonian(initial_pos_z, initial_pos_eps, initial_vel_z, initial_vel_eps, log_posterior),
+	energy_next = hamiltonian(final_pos_z, final_pos_eps, final_vel_z, final_vel_eps, log_posterior)
 	accept = metropolis_hastings_accept(energy_prev, energy_next)
 
 	#print('accept.shape', accept.shape)
 
-	new_pos = tf.where(accept, final_pos, initial_pos)
+	new_pos_z = tf.where(accept, final_pos_z, initial_pos_z)
+	new_pos_eps = tf.where(accept, final_pos_eps, initial_pos_eps)
 
-	return new_pos, accept
+	return new_pos_z, new_pos_eps, accept
 
 def hmc_updates(
 	accept,

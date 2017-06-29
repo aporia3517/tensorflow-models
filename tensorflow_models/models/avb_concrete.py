@@ -35,12 +35,13 @@ def create_placeholders(settings):
 	return x, z
 
 def create_prior(settings):
-	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32) * 2. - 1, name='p_z/sample')
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature, probs=0.5)
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32) * 2. - 1., name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
 	encoder_network = settings['architecture']['encoder']['fn']
-	temperature = 0.5
+	temperature = 2./3.
 
 	x_placeholder = tf_models.samples_placeholder()
 	assert(not x_placeholder is None)
@@ -49,7 +50,7 @@ def create_encoder(settings, reuse=True):
 	with tf.variable_scope('encoder', reuse=reuse):
 		logits_z = encoder_network(settings, x_placeholder, noise, is_training=False)
 		dist_z_given_x = tf.contrib.distributions.RelaxedBernoulli(temperature, logits=logits_z)
-		encoder = tf.identity(tf.cast(dist_z_given_x.sample(), dtype=tf.float32) * 2. - 1, name='q_z_given_x_eps/sample')
+		encoder = tf.identity(tf.cast(dist_z_given_x.sample(), dtype=tf.float32) * 2. - 1., name='q_z_given_x_eps/sample')
 	return encoder
 
 def create_decoder(settings, reuse=True):
@@ -66,7 +67,7 @@ def create_decoder(settings, reuse=True):
 	return tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
 
 def create_probs(settings, inputs, is_training, reuse=False):
-	temperature = 0.5
+	temperature = 2./3.
 
 	encoder_network = settings['architecture']['encoder']['fn']
 	decoder_network = settings['architecture']['decoder']['fn']
@@ -79,11 +80,13 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	with tf.variable_scope('encoder', reuse=reuse):
 		logits_z = encoder_network(settings, inputs, noise, is_training=is_training)
 		dist_z_given_x = tf.contrib.distributions.RelaxedBernoulli(temperature, logits=logits_z)
-		z_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32) * 2. - 1
+		z_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32)*2. - 1.
 
 	# The prior on z is also i.i.d. N(0, 1)
-	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1
+	#dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
+	temperature_prior = 0.5
+	dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature_prior, probs=0.5)
+	z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings))*2. - 1.
 		
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
@@ -103,13 +106,24 @@ def create_probs(settings, inputs, is_training, reuse=False):
 
 def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	decoder_network = settings['architecture']['decoder']['fn']
+	real_z = tf.sigmoid(z)*2. - 1.
 
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
-			logits_x = decoder_network(settings, z, is_training=is_training)
+			logits_x = decoder_network(settings, real_z, is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
-def lg_prior(z, settings, reuse=True, is_training=False):
+"""def lg_prior(z, settings, reuse=True, is_training=False):
 	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob((z + 1.)/2.)), 1)
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob((z + 1.)/2.)), 1)"""
+
+def lg_prior(z, settings, reuse=True, is_training=False):
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature)
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)
+
+def sample_prior(settings):
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature)
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')

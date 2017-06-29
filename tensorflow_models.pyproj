@@ -43,7 +43,13 @@
     <Compile Include="architectures\__init__.py" />
     <Compile Include="contexts\__init__.py" />
     <Compile Include="evaluation\ais.py" />
+    <Compile Include="evaluation\ais_relaxed_bernoulli.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="evaluation\hmc.py" />
+    <Compile Include="evaluation\hmc_relaxed_bernoulli.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="evaluation\__init__.py">
       <SubType>Code</SubType>
     </Compile>
@@ -51,7 +57,13 @@
     <Compile Include="inference\emvb.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="inference\emvb_aae.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="inference\emvb_final.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="inference\emvb_mixed.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="inference\gan.py" />
@@ -70,7 +82,16 @@
     <Compile Include="losses\elbo_concrete.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="losses\elbo_concrete_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="losses\elbo_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="losses\emvb.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="losses\emvb_aae.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="losses\emvb_final.py">
@@ -91,6 +112,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\avb_concrete.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\avb_concrete_unit.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\avb_normal.py" />
@@ -123,6 +147,12 @@
     <Compile Include="models\vae_concrete.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="models\vae_concrete_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\vae_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\vae_mubeta_obs.py">
       <SubType>Code</SubType>
     </Compile>
@@ -148,6 +178,9 @@
     <Compile Include="snapshot.py" />
     <Compile Include="timer.py" />
     <Compile Include="trainers\avb.py" />
+    <Compile Include="trainers\avb_np.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="trainers\emvb.py">
       <SubType>Code</SubType>
     </Compile>
@@ -157,9 +190,27 @@
     <Compile Include="trainers\emvb_final.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="trainers\emvb_np.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="trainers\emvb_np_aae.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="trainers\gan.py" />
     <Compile Include="trainers\svb.py" />
     <Compile Include="trainers\svb_concrete.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="trainers\svb_concrete_np.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="trainers\svb_concrete_np_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="trainers\svb_np.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="trainers\svb_np_iw.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="trainers\wgan.py">

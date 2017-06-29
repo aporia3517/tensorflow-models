@@ -111,3 +111,56 @@ def normal_dcgan(settings, inputs, is_training):
 	log_sigma_sq_z = slim.fully_connected(h, settings['latent_dimension'], activation_fn=tf.identity, scope='log_sigma_sq', normalizer_fn=None, normalizer_params=None)
 	diag_stdev_z = tf.sqrt(tf.exp(log_sigma_sq_z))
 	return mean_z, diag_stdev_z
+
+def bernoulli_dcgan(settings, inputs, is_training):
+	architecture = settings['architecture']
+	params = architecture['encoder']
+	assert len(inputs.shape) == 4
+	batchshape = tf_models.batchshape(settings)
+	latentshape = tf_models.latentshape(settings)
+
+	# Extract params and set defaults
+	if 'batch_norm' in params and params['batch_norm']:
+		normalizer_fn = slim.batch_norm
+		normalizer_params = {'scale':True, 'is_training':is_training, 'updates_collections':None, 'decay':0.95}
+	else:
+		normalizer_fn = None
+		normalizer_params = None
+
+	activation_fn = params['activation_fn']
+
+	#h = tf.reshape(inputs, [100, 28, 28, 1])
+	h = inputs
+
+	#print('DC-GAN discriminator')
+	#print('h.shape', h.shape)
+
+	df_dim = params['filter_count']
+	initial_size = params['initial_size']
+
+	#size_image = int(np.prod(batchshape[1:]))
+	#print('size of image', size_image, type(size_image))
+
+	dims = list(df_dim*(params['increase_factor']**np.arange(params['conv_layers'])))
+	h = slim.conv2d(h, dims[0], activation_fn=activation_fn, normalizer_fn=None, normalizer_params=None, kernel_size=[5, 5], stride=2, padding='SAME', scope='h0')
+	#print('h.name', h.name,'h.shape', h.shape)
+
+	with slim.arg_scope([slim.conv2d],
+                      activation_fn=activation_fn,
+                      normalizer_fn=normalizer_fn,
+											normalizer_params=normalizer_params,
+											kernel_size=[5, 5],
+											stride=2,
+											padding='SAME'
+											):
+		
+		#print('dims', dims)
+		for i in range(len(dims) - 1):
+			h = slim.conv2d(h, dims[i + 1], scope='h{}'.format(i+1))
+			#print('h.name', h.name,'h.shape', h.shape)
+			
+		h = tf.reshape(h, [100, -1])
+		#print('h.shape', h.shape)
+
+	logits_z = slim.fully_connected(h, settings['latent_dimension'], activation_fn=tf.identity, scope='logits', normalizer_fn=None, normalizer_params=None)
+	return logits_z

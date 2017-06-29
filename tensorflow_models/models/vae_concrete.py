@@ -44,7 +44,7 @@ def create_prior(settings):
 	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32) * 2. - 1., name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
-	temperature = 2. / 3.
+	temperature = 2./3.
 	encoder_network = settings['architecture']['encoder']['fn']
 
 	x_placeholder = tf_models.samples_placeholder()
@@ -131,18 +131,21 @@ def create_probs(settings, inputs, is_training, reuse=False):
 
 def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	decoder_network = settings['architecture']['decoder']['fn']
+	real_z = tf.sigmoid(z) * 2. - 1.
 
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
-			logits_x = decoder_network(settings, z, is_training=is_training)
+			logits_x = decoder_network(settings, real_z, is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
 def lg_prior(z, settings, reuse=True, is_training=False):
-	#temperature = 0.5
-	#dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature, probs=0.5)
-	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature)
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)
 
-	# TODO: Do I need to reduce_sum on the 1st dimension?
-	return tf.reduce_sum(dist_prior.log_prob((z + 1.)/2.), 1)
+def sample_prior(settings):
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature)
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')
 

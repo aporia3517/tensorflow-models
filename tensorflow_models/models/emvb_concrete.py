@@ -35,11 +35,12 @@ def create_placeholders(settings):
 	return x, z
 
 def create_prior(settings):
-	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1., name='p_z/sample')
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature, probs=0.5)
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32) * 2. - 1., name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
-	temperature = 0.5
+	temperature = 2./3.
 	encoder_network = settings['architecture']['encoder']['fn']
 
 	x_placeholder = tf_models.samples_placeholder()
@@ -66,7 +67,7 @@ def create_decoder(settings, reuse=True):
 	return decoder
 
 def create_probs(settings, inputs, is_training, reuse=False):
-	temperature = 0.5
+	temperature = 2./3.
 
 	encoder_network = settings['architecture']['encoder']['fn']
 	decoder_network = settings['architecture']['decoder']['fn']

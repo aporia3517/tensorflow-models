@@ -216,6 +216,10 @@ def lg_likelihood(settings):
 	else:
 		raise ValueError('No log-likelihood function exists')
 
+def model(settings):
+	model_module = importlib.import_module('tensorflow_models.models.' + settings['model'])
+	return model_module
+
 def lg_prior(settings):
 	model = importlib.import_module('tensorflow_models.models.' + settings['model'])
 	if 'lg_prior' in dir(model):
@@ -264,6 +268,20 @@ def samples_placeholder():
 	placeholders = tf.get_collection(GraphKeys.PLACEHOLDERS)
 	for p in placeholders:
 		if 'samples' in p.name:
+			return p
+	return None
+
+def train_placeholder():
+	placeholders = tf.get_collection(GraphKeys.INPUTS)
+	for p in placeholders:
+		if 'train/samples' in p.name:
+			return p
+	return None
+
+def test_placeholder():
+	placeholders = tf.get_collection(GraphKeys.INPUTS)
+	for p in placeholders:
+		if 'test/samples' in p.name:
 			return p
 	return None
 

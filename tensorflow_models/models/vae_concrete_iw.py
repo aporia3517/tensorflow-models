@@ -1,4 +1,4 @@
-/# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -34,17 +34,17 @@ def create_placeholders(settings):
 	z = tf.placeholder(tf.float32, shape=tf_models.latentshape(settings), name='codes')
 	return x, z
 
-def create_prior(settings):
-	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), name='p_z/sample')
+#def create_prior(settings):
+#	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
+#	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)) * 2. - 1., name='p_z/sample')
 
-"""def create_prior(settings):
+def create_prior(settings):
 	temperature = 0.5
 	dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature, probs=0.5)
-	return tf.identity(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), name='p_z/sample')"""
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32) * 2. - 1., name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
-	temperature = 0.5
+	temperature = 2. / 3.
 	encoder_network = settings['architecture']['encoder']['fn']
 
 	x_placeholder = tf_models.samples_placeholder()
@@ -53,7 +53,7 @@ def create_encoder(settings, reuse=True):
 	with tf.variable_scope('encoder', reuse=reuse):
 		logits_z = encoder_network(settings, x_placeholder, is_training=False)
 		dist_z_given_x = tf.contrib.distributions.RelaxedBernoulli(temperature, logits=logits_z)
-		encoder = tf.identity(tf.cast(dist_z_given_x.sample(name='sample'), dtype=tf.float32), name='q_z_given_x/sample')
+		encoder = tf.identity(tf.cast(dist_z_given_x.sample(name='sample'), dtype=tf.float32) * 2. - 1., name='q_z_given_x/sample')
 	return encoder
 
 def create_decoder(settings, reuse=True):
@@ -70,55 +70,102 @@ def create_decoder(settings, reuse=True):
 	return tf.identity(tf.nn.sigmoid(logits_x), name='p_x_given_z/sample')
 
 def create_probs(settings, inputs, is_training, reuse=False):
-	temperature = 0.5
+	iw_size = settings['iw_size']
+	temperature = 2./3.
 	encoder_network = settings['architecture']['encoder']['fn']
 	decoder_network = settings['architecture']['decoder']['fn']
 	
 	#dist_prior = tf_models.standard_normal(tf_models.latentshape(settings))
 	#dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
-	temperature_prior = 0.333
+	temperature_prior = 0.5
 	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature_prior)
+	dist_prior_discrete = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
 	#dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature_prior, probs=0.5)
+
+	#with tf.variable_scope('centering', reuse=reuse):
+	#	z_sample_avg = tf.get_variable('z_sample_avg', shape=tf_models.latentshape(settings), initializer=tf.zeros_initializer(), dtype=tf.float32, trainable=False)
 
 	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
 	with tf.variable_scope('encoder', reuse=reuse):
 		logits_z = encoder_network(settings, inputs, is_training=is_training)
+		
 	#dist_z_given_x = tf.contrib.distributions.RelaxedBernoulli(temperature, logits=logits_z)
 	dist_z_given_x = tf.contrib.distributions.Logistic(loc=logits_z/temperature, scale=tf.constant(1./temperature, shape=logits_z.shape))
+	dist_z_given_x_discrete = tf.contrib.distributions.Bernoulli(logits=logits_z, dtype=tf.float32)
 
 	# Draw one sample z from Gumbel-softmax
 	logits_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32)
-	z_sample = tf.sigmoid(logits_sample)
+	logits_sample_iw = dist_z_given_x.sample([iw_size])
+	
+	# NOTE: Is this what is meant by "this running average was subtracted from the activity of the layer before it was updated"?
+	z_sample = tf.sigmoid(logits_sample) * 2. - 1.
+	z_sample_discrete = tf.round(z_sample)
+
+	z_sample_iw = tf.sigmoid(logits_sample_iw) * 2. - 1.
+	z_sample_discrete_iw = tf.round(z_sample_iw)
 
 	#print('z_sample.shape', z_sample.shape)
 
 	# Use generator to determine mean of Bernoulli distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_sample, is_training=is_training)
+		tf.get_variable_scope().reuse_variables()
+		logits_x_discrete = decoder_network(settings, z_sample_discrete, is_training=is_training)
+		logits_x_iw = decoder_network(settings, tf.reshape(z_sample_iw, (-1, settings['latent_dimension'])), is_training=is_training)
+		logits_x_discrete_iw = decoder_network(settings, tf.reshape(z_sample_discrete_iw, (-1, settings['latent_dimension'])), is_training=is_training)
+
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
+	dist_x_given_z_discrete = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x_discrete), dtype=tf.float32)
+
+	dist_x_given_z_iw = tf.contrib.distributions.Bernoulli(logits=tf.reshape(tf_models.flatten(logits_x_iw), (settings['iw_size'], settings['batch_size'], -1)), dtype=tf.float32)
+	dist_x_given_z_discrete_iw = tf.contrib.distributions.Bernoulli(logits=tf.reshape(tf_models.flatten(logits_x_discrete_iw), (settings['iw_size'], settings['batch_size'], -1)), dtype=tf.float32)
 	
 	# NOTE: x | z is defined as over each pixel separate, where prior on z is a multivariate
 	# Hence the need to do the tf.reduce_sum op on the former to get down to a single number for each sample
 	lg_p_x_given_z = tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(inputs)), 1, name='p_x_given_z/log_prob')
-
 	lg_p_z = tf.identity(tf.reduce_sum(dist_prior.log_prob(logits_sample), 1), name='p_z/log_prob')
 	lg_q_z_given_x = tf.identity(tf.reduce_sum(dist_z_given_x.log_prob(logits_sample), 1), name='q_z_given_x/log_prob')
 
-	return lg_p_x_given_z, lg_p_z, lg_q_z_given_x
+	lg_p_z_discrete = tf.identity(tf.reduce_sum(dist_prior_discrete.log_prob(z_sample_discrete), 1), name='p_z/log_prob_discrete')
+	lg_q_z_given_x_discrete = tf.identity(tf.reduce_sum(dist_z_given_x_discrete.log_prob(z_sample_discrete), 1), name='q_z_given_x/log_prob_discrete')
+	lg_p_x_given_z_discrete = tf.reduce_sum(dist_x_given_z_discrete.log_prob(tf_models.flatten(inputs)), 1, name='p_x_given_z/log_prob_discrete')
+
+	inputs_iw = tf.tile(tf.expand_dims(tf_models.flatten(inputs), axis=0), multiples=[settings['iw_size'],1,1])
+
+	lg_p_x_given_z_iw = tf.reduce_sum(dist_x_given_z_iw.log_prob(inputs_iw), 2, name='p_x_given_z_iw/log_prob')
+	lg_p_z_iw = tf.reduce_sum(dist_prior.log_prob(logits_sample_iw), 2, name='p_z_iw/log_prob')
+	lg_q_z_given_x_iw = tf.reduce_sum(dist_z_given_x.log_prob(logits_sample_iw), 2, name='q_z_given_x_iw/log_prob')
+
+	lg_p_x_given_z_discrete_iw = tf.reduce_sum(dist_x_given_z_discrete_iw.log_prob(inputs_iw), 2, name='p_x_given_z_iw/log_prob_discrete')
+	lg_p_z_discrete_iw = tf.reduce_sum(dist_prior_discrete.log_prob(z_sample_discrete_iw), 2, name='p_z_iw/log_prob_discrete')
+	lg_q_z_given_x_discrete_iw = tf.reduce_sum(dist_z_given_x.log_prob(logits_sample_iw), 2, name='q_z_given_x_iw/log_prob_discrete')
+
+	return lg_p_x_given_z, lg_p_z, lg_q_z_given_x, lg_p_z_discrete, lg_q_z_given_x_discrete, lg_p_x_given_z_discrete, lg_p_x_given_z_iw, lg_p_z_iw, lg_q_z_given_x_iw, lg_p_z_discrete_iw, lg_q_z_given_x_discrete_iw, lg_p_x_given_z_discrete_iw
 
 def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	decoder_network = settings['architecture']['decoder']['fn']
+	real_z = tf.sigmoid(z) * 2. - 1.
 
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
-			logits_x = decoder_network(settings, z, is_training=is_training)
+			logits_x = decoder_network(settings, real_z, is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
-def lg_prior(z, settings, reuse=True, is_training=False):
+"""def lg_prior(z, settings, reuse=True, is_training=False):
 	#temperature = 0.5
-	#dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature, probs=0.5)
-	dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
+	dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature, probs=0.5)
+	#dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
 
 	# TODO: Do I need to reduce_sum on the 1st dimension?
-	return tf.reduce_sum(dist_prior.log_prob(z), 1)
+	return tf.reduce_sum(dist_prior.log_prob((z + 1.)/2.), 1)"""
+
+def lg_prior(z, settings, reuse=True, is_training=False):
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature)
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)
+
+def sample_prior(settings):
+	temperature = 0.5
+	dist_prior = tf.contrib.distributions.Logistic(loc=0., scale=1./temperature)
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')

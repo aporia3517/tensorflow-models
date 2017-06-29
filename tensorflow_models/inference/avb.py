@@ -41,12 +41,16 @@ def create(settings):
 	elbo_vars = [var for var in tf.trainable_variables() if not var.name.startswith('model/discriminator')]
 	discriminator_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/discriminator')]
 
+	#print('Vars not in elbo or discriminator set:', [var for var in tf.trainable_variables() if not ])
+	#print('elbo_vars')
+	#print(elbo_vars)
+
 	# Add to the Graph operations that train the model.
 	if not settings['optimizer'] is 'adam':
-		elbo_train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_like')
+		elbo_train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, name='elbo_like')
 		adversarial_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator')
 	else:
-		elbo_train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_like', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
+		elbo_train_op = optimizer_lib.training(train_elbo_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, name='elbo_like', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 		adversarial_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 
 	return elbo_train_op, adversarial_train_op
