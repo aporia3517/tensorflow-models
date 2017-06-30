@@ -42,13 +42,18 @@ def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name, scale, transform, d
 	#print('prior_critic.shape', prior_critic.shape)
 	#print('name', name)
 
-	#print('*** DEBUG ***')
-	#print('loglike.shape', loglike.shape)
-	#print('D_fake.shape', D_fake.shape)
-	#print('D_real.shape', D_real.shape)
-	#print('D_inter.shape', D_inter.shape)
-	#print('Z_inter.shape', Z_inter.shape)
-	#print('X.shape', X.shape)
+	"""print('*** DEBUG ***')
+	print('loglike.shape', loglike.shape)
+	print('D_fake.shape', D_fake.shape)
+	print('D_real.shape', D_real.shape)
+	print('D_inter.shape', D_inter.shape)
+	print('Z_inter.shape', Z_inter.shape)
+	print('X.shape', X.shape)
+
+	print('discriminator.shape', discriminator.shape)
+	print('prior_discriminator.shape', prior_discriminator.shape)"""
+	#raise Exception()
+
 
 	# TODO: Flatten X? Or flatten grad2?
 	lam = 10
@@ -63,8 +68,13 @@ def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name, scale, transform, d
 	#print('grad.shape', grad[0].shape)
 	#print('grad2.shape', grad2[0].shape)
 
-	grad_norm = tf.sqrt(tf.reduce_sum((tf.concat([grad[0], tf_models.flatten(grad2[0])], axis=1))**2, axis=1))
-	grad_pen = lam * tf.reduce_mean(grad_norm - 1.)**2
+	grad_norm = tf.sqrt(tf.reduce_sum(tf.square(tf.concat([grad[0], tf_models.flatten(grad2[0])], axis=1)), axis=1))
+
+	#print('grad_norm.shape', grad_norm.shape)
+
+	grad_pen = lam * tf.reduce_mean(tf.square(grad_norm - 1.))
+
+	#print('grad_pen.shape', grad_pen.shape)
 
 	minus_EM = tf.reduce_mean(D_fake) - tf.reduce_mean(D_real)
 	D_loss = tf.reduce_mean(minus_EM + grad_pen)
@@ -127,10 +137,14 @@ def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name, scale, transform, d
 	#print('*** DEBUG ***')
 	#print('loglike.shape', loglike.shape)
 	#print('regu_term.shape', regu_term.shape)
-	#raise Exception()
+	#print((-loglike + tf.squeeze(discriminator)).shape)
+	
 
 	elbo_loss = tf.reduce_mean(-loglike) - regu_term
-	elbo_avb = tf.reduce_mean(-loglike + discriminator)
+	elbo_avb = tf.reduce_mean(-loglike + tf.squeeze(discriminator))
+
+	#print(tf.reduce_mean(-loglike).shape, regu_term.shape, elbo_loss.shape)
+	#raise Exception()
 
 	# Eq (3.3)
 	discriminator_loss = -tf.reduce_mean(tf_models.safe_log(tf.nn.sigmoid(discriminator)) + tf_models.safe_log(1. - tf.nn.sigmoid(prior_discriminator)))

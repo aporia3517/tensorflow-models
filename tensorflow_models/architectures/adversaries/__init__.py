@@ -39,7 +39,8 @@ def adversary_mlp(settings, inputs, is_training):
 					inputs,
 					params['sizes'] + [1],
 					activation_fn=params['activation_fn'],
-					final_activation_fn=params['output_fn'])
+					final_activation_fn=params['output_fn'],
+					normalizer_fn=params['normalizer_fn'])
 
 # Discriminator used for adversarial training in logits
 # Transforms each input separately before combining 
@@ -54,7 +55,8 @@ def split_2v_mlp(settings, x, z, is_training):
 						tf.concat([x_layer, z_layer], axis=1),
 						params['join_sizes'] + [1], scope='join_layer',
 						activation_fn=params['activation_fn'],
-						final_activation_fn=params['output_fn'])
+						final_activation_fn=params['output_fn'],
+						normalizer_fn=params['normalizer_fn'])
 
 def adversary_2v_mlp(settings, x, z, is_training):
 	x = tf_models.flatten(x)
@@ -65,7 +67,8 @@ def adversary_2v_mlp(settings, x, z, is_training):
 					inputs,
 					params['sizes'] + [1],
 					activation_fn=params['activation_fn'],
-					final_activation_fn=params['output_fn'])
+					final_activation_fn=params['output_fn'],
+					normalizer_fn=params['normalizer_fn'])
 
 # DC-GAN discriminator
 def adversary_dcgan(settings, inputs, is_training):

@@ -42,7 +42,8 @@ def mlp(settings, inputs, eps, is_training):
 						tf.concat([inputs, eps], axis=1), 
 						params['sizes'] + [settings['latent_dimension']],
 						activation_fn=params['activation_fn'],
-						final_activation_fn=params['output_fn'])
+						final_activation_fn=params['output_fn'],
+						normalizer_fn=params['normalizer_fn'])
 
 def dcgan(settings, inputs, eps, is_training):
 	architecture = settings['architecture']

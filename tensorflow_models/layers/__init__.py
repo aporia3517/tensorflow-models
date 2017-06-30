@@ -33,21 +33,21 @@ import tensorflow.contrib.slim as slim
 #weights_initializer = tf.contrib.layers.variance_scaling_initializer(factor=2.0, mode='FAN_IN', uniform=False)
 
 # Define a multilayer perceptron, or dense feedforward net
-def mlp(inputs, sizes, scope='layer', activation_fn=tf.nn.relu, final_activation_fn=None):
+def mlp(inputs, sizes, scope='layer', activation_fn=tf.nn.relu, final_activation_fn=None, normalizer_fn=None):
 	if final_activation_fn is None:
 		#return slim.stack(inputs, slim.fully_connected, sizes, scope=scope, activation_fn=activation_fn, weights_initializer=weights_initializer)
-		return slim.stack(inputs, slim.fully_connected, sizes, scope=scope, activation_fn=activation_fn)
+		return slim.stack(inputs, slim.fully_connected, sizes, scope=scope, activation_fn=activation_fn, normalizer_fn=normalizer_fn)
 	else:
 		# TODO: Check that variables are being created properly and not reused
 		#layer = slim.stack(inputs, slim.fully_connected, sizes[:-1], scope=scope, activation_fn=activation_fn, weights_initializer=weights_initializer)
 		#return slim.fully_connected(layer, sizes[-1], scope=scope, activation_fn=final_activation_fn, weights_initializer=weights_initializer)
-		layer = slim.stack(inputs, slim.fully_connected, sizes[:-1], scope=scope, activation_fn=activation_fn)
+		layer = slim.stack(inputs, slim.fully_connected, sizes[:-1], scope=scope, activation_fn=activation_fn, normalizer_fn=normalizer_fn)
 		return slim.fully_connected(layer, sizes[-1], scope=scope, activation_fn=final_activation_fn)
 
 # Define a network from inputs to mean and standard deviation parameters for a diagonal Gaussian distribution
 # NOTE: This is the basic architecture for the encoder network in a VAE
-def gaussian_parameters_mlp(inputs, sizes, activation_fn=tf.nn.relu):
-	layer = mlp(inputs, sizes[:-1], activation_fn=activation_fn)
+def gaussian_parameters_mlp(inputs, sizes, activation_fn=tf.nn.relu, normalizer_fn=None):
+	layer = mlp(inputs, sizes[:-1], activation_fn=activation_fn, normalizer_fn=normalizer_fn)
 	#mean_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='mean', weights_initializer=weights_initializer)
 	#log_sigma_sq_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='log_sigma_sq', weights_initializer=weights_initializer)
 	mean_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='mean')
@@ -55,14 +55,14 @@ def gaussian_parameters_mlp(inputs, sizes, activation_fn=tf.nn.relu):
 	diag_stdev_z = tf.sqrt(tf.exp(log_sigma_sq_z))
 	return mean_z, diag_stdev_z
 
-def beta_parameters_mlp(inputs, sizes, activation_fn=tf.nn.relu):
-	layer = mlp(inputs, sizes[:-1], activation_fn=activation_fn,)
+def beta_parameters_mlp(inputs, sizes, activation_fn=tf.nn.relu, normalizer_fn=None):
+	layer = mlp(inputs, sizes[:-1], activation_fn=activation_fn, normalizer_fn=normalizer_fn)
 	#mean_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='mean', weights_initializer=weights_initializer)
 	#log_sigma_sq_z = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='log_sigma_sq', weights_initializer=weights_initializer)
 	logits_alpha = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='logits_alpha')
 	logits_beta = slim.fully_connected(layer, sizes[-1], activation_fn=tf.identity, scope='logits_beta')
 	return logits_alpha, logits_beta
 
-def bernoulli_parameters_mlp(inputs, sizes, activation_fn=tf.nn.relu):
-	logits = mlp(inputs, sizes, activation_fn=activation_fn, final_activation_fn=tf.identity)
+def bernoulli_parameters_mlp(inputs, sizes, activation_fn=tf.nn.relu, normalizer_fn=None):
+	logits = mlp(inputs, sizes, activation_fn=activation_fn, final_activation_fn=tf.identity, normalizer_fn=normalizer_fn)
 	return logits

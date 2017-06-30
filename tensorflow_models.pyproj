@@ -78,6 +78,9 @@
     <Compile Include="initializations.py" />
     <Compile Include="layers\__init__.py" />
     <Compile Include="losses\avb.py" />
+    <Compile Include="losses\avb_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="losses\elbo.py" />
     <Compile Include="losses\elbo_concrete.py">
       <SubType>Code</SubType>
@@ -114,6 +117,9 @@
     <Compile Include="models\avb_concrete.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="models\avb_concrete_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\avb_concrete_unit.py">
       <SubType>Code</SubType>
     </Compile>
@@ -131,6 +137,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\emvb_final.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\emvb_final_iw.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\emvb_normal.py">
@@ -179,6 +188,9 @@
     <Compile Include="timer.py" />
     <Compile Include="trainers\avb.py" />
     <Compile Include="trainers\avb_np.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="trainers\avb_np_iw.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="trainers\emvb.py">

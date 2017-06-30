@@ -36,8 +36,8 @@ class Trainer(BaseTrainer):
 
 	# Create the functions that perform learning and evaluation
 	def learning_hooks(self):
-		critic_steps = self._settings['adversary_steps']
-		discriminator_steps = self._settings['adversary_steps_avb']
+		critic_steps = self._settings['critic_steps']
+		discriminator_steps = self._settings['discriminator_steps']
 		start_avb = self._settings['start_avb']
 
 		elbo_train_op = tf_models.get_inference('elbo_like')

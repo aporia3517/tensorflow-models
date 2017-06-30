@@ -37,7 +37,7 @@ def create_placeholders(settings):
 def create_prior(settings):
 	temperature = 0.5
 	dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature, probs=0.5)
-	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32) * 2. - 1., name='p_z/sample')
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32)*2. - 1., name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
 	encoder_network = settings['architecture']['encoder']['fn']
@@ -68,6 +68,8 @@ def create_decoder(settings, reuse=True):
 
 def create_probs(settings, inputs, is_training, reuse=False):
 	temperature = 2./3.
+	iw_shape = (settings['iw_size'], settings['batch_size'], -1)
+	flat_shape = (-1, settings['latent_dimension'])
 
 	encoder_network = settings['architecture']['encoder']['fn']
 	decoder_network = settings['architecture']['decoder']['fn']
@@ -81,20 +83,30 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		logits_z = encoder_network(settings, inputs, noise, is_training=is_training)
 		dist_z_given_x = tf.contrib.distributions.RelaxedBernoulli(temperature, logits=logits_z)
 		z_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32)*2. - 1.
+		z_sample_iw = tf.cast(dist_z_given_x.sample([settings['iw_size']]), dtype=tf.float32)*2. - 1.
 
 	# The prior on z is also i.i.d. N(0, 1)
 	#dist_prior = tf.contrib.distributions.Bernoulli(probs=0.5, dtype=tf.float32)
 	temperature_prior = 0.5
 	dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature_prior, probs=0.5)
 	z_prior = dist_prior.sample(sample_shape=tf_models.latentshape(settings))*2. - 1.
+	z_prior_iw = dist_prior.sample(sample_shape=(settings['iw_size'], settings['batch_size'], settings['latent_dimension']))*2. - 1.
 		
 	# Use generator to determine distribution of reconstructed input
 	with tf.variable_scope('decoder', reuse=reuse):
 		logits_x = decoder_network(settings, z_sample, is_training=is_training)
+		tf.get_variable_scope().reuse_variables()
+		logits_x_iw = decoder_network(settings, tf.reshape(z_sample_iw, flat_shape), is_training=is_training)
+
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
+	dist_x_given_z_iw = tf.contrib.distributions.Bernoulli(logits=tf.reshape(tf_models.flatten(logits_x_iw), iw_shape), dtype=tf.float32)
 
 	# Log likelihood of reconstructed inputs
 	lg_p_x_given_z = tf.identity(tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(inputs)), 1), name='p_x_given_z/log_prob')
+
+	inputs_iw = tf.tile(tf.expand_dims(tf_models.flatten(inputs), axis=0), multiples=[settings['iw_size'],1,1])
+	flat_inputs_iw = tf.reshape(inputs_iw, (settings['iw_size']*settings['batch_size'], -1))
+	lg_p_x_given_z_iw = tf.reduce_sum(dist_x_given_z_iw.log_prob(inputs_iw), 2, name='p_x_given_z_iw/log_prob')
 
 	# Discriminator T(x, z)
 	with tf.variable_scope('discriminator', reuse=reuse):
@@ -102,7 +114,23 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		tf.get_variable_scope().reuse_variables()
 		prior_discriminator = tf.squeeze(discriminator_network(settings, inputs, z_prior, is_training=is_training), name='prior')
 
-	return lg_p_x_given_z, discriminator, prior_discriminator
+		flat_z_sample_iw = tf.reshape(z_sample_iw, (-1, settings['latent_dimension']))
+		flat_z_prior_iw = tf.reshape(z_prior_iw, (-1, settings['latent_dimension']))
+
+		discriminator_iw = tf.squeeze(tf.reshape(discriminator_network(settings, flat_inputs_iw, flat_z_sample_iw, is_training=is_training), iw_shape), name='generator_iw')
+		#prior_discriminator_iw = tf.squeeze(tf.reshape(discriminator_network(settings, flat_inputs_iw, flat_z_prior_iw, is_training=is_training), iw_shape), name='prior_iw')
+
+		#(settings['iw_size'], settings['batch_size'], -1)
+
+	# DEBUG: Check shapes
+	"""print('discriminator.shape', discriminator.shape)
+	print('prior_discriminator.shape', prior_discriminator.shape)
+	print('lg_p_x_given_z.shape', lg_p_x_given_z.shape)
+	print('discriminator_iw.shape', discriminator_iw.shape)
+	print('prior_discriminator_iw.shape', prior_discriminator_iw.shape)
+	print('lg_p_x_given_z_iw.shape', lg_p_x_given_z_iw.shape)"""
+
+	return lg_p_x_given_z, discriminator, prior_discriminator, lg_p_x_given_z_iw, discriminator_iw #, prior_discriminator_iw
 
 def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	decoder_network = settings['architecture']['decoder']['fn']

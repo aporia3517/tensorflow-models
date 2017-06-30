@@ -38,7 +38,8 @@ def bernoulli_mlp(settings, code, is_training):
 	return tf_models.layers.bernoulli_parameters_mlp(
 					code,
 					params['sizes'] + tf_models.flattened_shape(settings),
-					activation_fn=params['activation_fn'])
+					activation_fn=params['activation_fn'],
+					normalizer_fn=params['normalizer_fn'])
 
 def normal_mlp(settings, code, is_training):
 	architecture = settings['architecture']
@@ -46,7 +47,8 @@ def normal_mlp(settings, code, is_training):
 	return tf_models.layers.gaussian_parameters_mlp(
 					code,
 					params['sizes'] + tf_models.flattened_shape(settings),
-					activation_fn=params['activation_fn'])
+					activation_fn=params['activation_fn'],
+					normalizer_fn=params['normalizer_fn'])
 
 def beta_mlp(settings, code, is_training):
 	architecture = settings['architecture']
@@ -54,7 +56,8 @@ def beta_mlp(settings, code, is_training):
 	return tf_models.layers.beta_parameters_mlp(
 					code,
 					params['sizes'] + tf_models.flattened_shape(settings),
-					activation_fn=params['activation_fn'])
+					activation_fn=params['activation_fn'],
+					normalizer_fn=params['normalizer_fn'])
 
 def bernoulli_dcgan(settings, code, is_training):
 	architecture = settings['architecture']

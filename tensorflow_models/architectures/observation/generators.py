@@ -42,7 +42,8 @@ def mlp(settings, code, is_training):
 					code,
 					params['sizes'] + tf_models.flattened_shape(settings),
 					activation_fn=params['activation_fn'],
-					final_activation_fn=params['activation_fn'])
+					final_activation_fn=params['activation_fn'],
+					normalizer_fn=params['normalizer_fn'])
 
 # DC-GAN decoder. Uses transposed (fractionally strided) convolutions
 def dcgan(settings, code, is_training):
