@@ -44,13 +44,13 @@ def loss(lg_p_x_given_z, lg_p_z, lg_q_z_given_x, lg_p_x_given_z_discrete, lg_p_z
 
 	# DEBUG
 	#print('iw_size', iw_size)
-	print('lg_p_x_given_z.shape', lg_p_x_given_z.shape)
-	print('lg_p_z.shape', lg_p_z.shape)
-	print('lg_q_z_given_x.shape', lg_q_z_given_x.shape)
-	print('lg_p_x_given_z_iw.shape', lg_p_x_given_z_iw.shape)
-	print('lg_p_z_iw.shape', lg_p_z_iw.shape)
-	print('lg_q_z_given_x_iw.shape', lg_q_z_given_x_iw.shape)
-	raise Exception()
+	#print('lg_p_x_given_z.shape', lg_p_x_given_z.shape)
+	#print('lg_p_z.shape', lg_p_z.shape)
+	#print('lg_q_z_given_x.shape', lg_q_z_given_x.shape)
+	#print('lg_p_x_given_z_iw.shape', lg_p_x_given_z_iw.shape)
+	#print('lg_p_z_iw.shape', lg_p_z_iw.shape)
+	#print('lg_q_z_given_x_iw.shape', lg_q_z_given_x_iw.shape)
+	#raise Exception()
 
 	lg_pz_iw = lg_p_x_given_z_iw + lg_p_z_iw
 	iwae_loss = -tf.reduce_mean(tf.reduce_logsumexp(lg_pz_iw - lg_q_z_given_x_iw, axis=0) - tf.log(tf.constant(iw_size, dtype=tf.float32)))

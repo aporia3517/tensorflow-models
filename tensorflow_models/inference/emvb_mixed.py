@@ -54,13 +54,13 @@ def create(settings):
 	# Add to the Graph operations that train the model.
 	if not settings['optimizer'] is 'adam':
 		elbo_train_op = optimizer_lib.training(0.5 * (train_elbo_loss + train_elbo_avb_loss), learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_like')
-		critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['adversary_rate'], var_list=critic_vars, name='critic')
-		discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator')
+		critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['critic_rate'], var_list=critic_vars, name='critic')
+		discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['discriminator_rate'], var_list=discriminator_vars, name='discriminator')
 		elbo_avb_train_op = optimizer_lib.training(train_elbo_avb_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_avb')
 	else:
 		elbo_train_op = optimizer_lib.training(0.5 * (train_elbo_loss + train_elbo_avb_loss), learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_like', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
-		critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['adversary_rate'], var_list=critic_vars, name='critic', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
-		discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['adversary_rate'], var_list=discriminator_vars, name='discriminator', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
+		critic_train_op = optimizer_lib.training(train_critic_loss, learning_rate=settings['critic_rate'], var_list=critic_vars, name='critic', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
+		discriminator_train_op = optimizer_lib.training(train_discriminator_loss, learning_rate=settings['discriminator_rate'], var_list=discriminator_vars, name='discriminator', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 		elbo_avb_train_op = optimizer_lib.training(train_elbo_avb_loss, learning_rate=settings['learning_rate'], var_list=elbo_vars, step=step, name='elbo_avb', beta1=settings['adam_beta1'], beta2=settings['adam_beta2'])
 
 	return elbo_train_op, critic_train_op, discriminator_train_op, elbo_avb_train_op

@@ -33,16 +33,22 @@ import tensorflow_models as tf_models
 # lg_p_x_given_z ~ batch_size x 784
 # adversary ~ ?
 # prior_adversary ~ ?
-def loss(lg_p_x_given_z, discriminator, prior_discriminator, lg_p_x_given_z_iw, discriminator_iw, name):	
-	# Eq (3.9)
-	# NOTE: Take negative since we are minimizing
-	elbo_loss = -tf.reduce_mean(-discriminator + lg_p_x_given_z)
+def loss(lg_p_x_given_z, discriminator, prior_discriminator, lg_p_x_given_z_iw, discriminator_iw, lg_p_z, lg_p_z_iw, lg_p_z_prior, lg_p_z_iw_prior, name):	
+	# DEBUG: Check shapes
+	#print(discriminator.shape, lg_p_z.shape, lg_p_x_given_z.shape)
+	#print(prior_discriminator.shape, lg_p_z_prior.shape)
+	#print(lg_p_x_given_z_iw.shape, discriminator_iw.shape, lg_p_z_iw.shape)
+	#raise Exception()
 
 	# Eq (3.3)
-	discriminator_loss = -tf.reduce_mean(tf_models.safe_log(tf.nn.sigmoid(discriminator)) + tf_models.safe_log(1. - tf.nn.sigmoid(prior_discriminator)))
+	discriminator_loss = -tf.reduce_mean(tf_models.safe_log(tf.nn.sigmoid(discriminator - lg_p_z)) + tf_models.safe_log(1. - tf.nn.sigmoid(prior_discriminator - lg_p_z_prior)))
+
+	# Eq (3.9)
+	# NOTE: Take negative since we are minimizing
+	elbo_loss = -tf.reduce_mean(-(discriminator - lg_p_z) + lg_p_x_given_z)
 
 	iw_size = int(lg_p_x_given_z_iw.shape[0])
-	iwae_loss = -tf.reduce_mean(tf.reduce_logsumexp(lg_p_x_given_z_iw - discriminator_iw, axis=0) - tf.log(tf.constant(iw_size, dtype=tf.float32)))
+	iwae_loss = -tf.reduce_mean(tf.reduce_logsumexp(lg_p_x_given_z_iw - (discriminator_iw - lg_p_z_iw), axis=0) - tf.log(tf.constant(iw_size, dtype=tf.float32)))
 
 	return tf.identity(elbo_loss, name=name+'/elbo_like'), tf.identity(discriminator_loss, name=name+'/discriminator'), tf.identity(iwae_loss, name=name+'/iwae')
 
@@ -55,9 +61,15 @@ def create(name='train', settings=None):
 	discriminator_iw = tf.squeeze(tf_models.get_output(name + '/discriminator/generator_iw'))
 	#prior_discriminator_iw = tf.squeeze(tf_models.get_output(name + '/discriminator/prior_iw'))
 
+	lg_p_z = tf.squeeze(tf_models.get_output(name + '/p_z/log_prob'))
+	lg_p_z_iw = tf.squeeze(tf_models.get_output(name + '/p_z_iw/log_prob'))
+
+	lg_p_z_prior = tf.squeeze(tf_models.get_output(name + '/p_z/log_prob_prior'))
+	lg_p_z_iw_prior = tf.squeeze(tf_models.get_output(name + '/p_z_iw/log_prob_prior'))
+
 	#print('lg_p_x_given_z_iw.shape', lg_p_x_given_z_iw.shape)
 	#print('discriminator_iw.shape', discriminator_iw.shape)
 	#print('prior_discriminator_iw.shape', prior_discriminator_iw.shape)
 	#raise Exception()
 
-	return loss(lg_p_x_given_z, discriminator, prior_discriminator, lg_p_x_given_z_iw, discriminator_iw, name=name)
+	return loss(lg_p_x_given_z, discriminator, prior_discriminator, lg_p_x_given_z_iw, discriminator_iw, lg_p_z, lg_p_z_iw, lg_p_z_prior, lg_p_z_iw_prior, name=name)

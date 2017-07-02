@@ -81,6 +81,9 @@
     <Compile Include="losses\avb_iw.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="losses\avb_no_learn_prior_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="losses\elbo.py" />
     <Compile Include="losses\elbo_concrete.py">
       <SubType>Code</SubType>
@@ -118,6 +121,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\avb_concrete_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\avb_concrete_no_learn_prior_iw.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\avb_concrete_unit.py">
