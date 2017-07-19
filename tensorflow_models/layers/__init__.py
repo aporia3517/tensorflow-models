@@ -30,7 +30,7 @@ from tensorflow.python.ops import init_ops
 import tensorflow_models as tf_models
 import tensorflow.contrib.slim as slim
 
-#weights_initializer = tf.contrib.layers.variance_scaling_initializer(factor=2.0, mode='FAN_IN', uniform=False)
+weights_initializer = tf.contrib.layers.variance_scaling_initializer(factor=2.0, mode='FAN_IN', uniform=False)
 
 # Define a multilayer perceptron, or dense feedforward net
 def mlp(inputs, sizes, scope='layer', activation_fn=tf.nn.relu, final_activation_fn=None, normalizer_fn=None):

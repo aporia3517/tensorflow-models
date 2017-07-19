@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -47,11 +47,11 @@ def create(settings):
 	disc_update_ops = [v for v in update_ops if v.name.startswith('model/train/discriminator')]
 	gen_update_ops = [v for v in update_ops if v.name.startswith('model/train/generator')]
 
-	print('')
-	print('disc_update_ops', disc_update_ops)
-	print('')
-	print('gen_update_ops', gen_update_ops)
-	print('')
+	#print('')
+	#print('disc_update_ops', disc_update_ops)
+	#print('')
+	#print('gen_update_ops', gen_update_ops)
+	#print('')
 
 	#print('generator variables')
 	#print([var.name for var in generator_vars])

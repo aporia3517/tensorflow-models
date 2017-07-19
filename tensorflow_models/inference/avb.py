@@ -29,7 +29,6 @@ import importlib
 import tensorflow as tf
 import tensorflow_models as tf_models
 
-
 # Create the training operations
 def create(settings):
 	optimizer_lib = importlib.import_module('tensorflow_models.optimizers.' + settings['optimizer'])
