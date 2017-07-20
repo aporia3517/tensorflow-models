@@ -90,7 +90,7 @@ class Trainer(BaseTrainer):
 			test_elbo = self.results['elbo_test'][-1]
 			test_discriminator = self.results['discriminator_test'][-1]
 
-		print('epoch {:.3f}, test elbo = {:.2f}, test disc. = {:.2f}'.format(self.epoch(), test_elbo, test_discriminator))
+		print('epoch {:.3f}, test elbo = {:.2f}, test disc. = {:.7f}'.format(self.epoch(), test_elbo, test_discriminator))
 
 	def step_hook(self):
 		with tf_models.timer.Timer() as train_timer:
@@ -116,7 +116,7 @@ class Trainer(BaseTrainer):
 		examples_per_sec = self._settings['batch_size'] * self._batches_per_step / train_time
 		sec_per_batch = train_time / self._batches_per_step
 
-		print('epoch {:.3f}, test elbo = {:.2f}, test disc. = {:.2f}, train loss = {:.2f} ({:.1f} examples/sec)'.format(self.epoch(), test_elbo, test_discriminator, train_elbo, examples_per_sec))
+		print('epoch {:.3f}, test elbo = {:.2f}, test disc. = {:.7f}, train loss = {:.2f} ({:.1f} examples/sec)'.format(self.epoch(), test_elbo, test_discriminator, train_elbo, examples_per_sec))
 
 	def initialize_results_hook(self):
 		results = {}

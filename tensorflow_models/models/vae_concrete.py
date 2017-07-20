@@ -86,8 +86,8 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	dist_prior_discrete = tf.contrib.distributions.Bernoulli(probs=prior_prob, dtype=tf.float32)
 	#dist_prior = tf.contrib.distributions.RelaxedBernoulli(temperature_prior, probs=0.5)
 
-	with tf.variable_scope('centering', reuse=reuse):
-		z_sample_avg = tf.get_variable('z_sample_avg', shape=tf_models.latentshape(settings), initializer=tf.zeros_initializer(), dtype=tf.float32, trainable=False)
+	#with tf.variable_scope('centering', reuse=reuse):
+	#	z_sample_avg = tf.get_variable('z_sample_avg', shape=tf_models.latentshape(settings), initializer=tf.zeros_initializer(), dtype=tf.float32, trainable=False)
 
 	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
 	with tf.variable_scope('encoder', reuse=reuse):
@@ -101,14 +101,14 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	logits_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32)
 
 	# NOTE: Is this what is meant by "this running average was subtracted from the activity of the layer before it was updated"?
-	z_sample = tf.sigmoid(logits_sample) * 2. - 1. - z_sample_avg
+	z_sample = tf.sigmoid(logits_sample) * 2. - 1. #- z_sample_avg
 	z_sample_discrete = tf.round(z_sample)
 
 	# Create moving average ops on first creation
-	decay = 0.9
-	if not reuse:
-		update_z_sample_avg = z_sample_avg.assign_sub((1 - decay) * (z_sample_avg - z_sample))
-		tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_z_sample_avg)
+	#decay = 0.9
+	#if not reuse:
+	#	update_z_sample_avg = z_sample_avg.assign_sub((1 - decay) * (z_sample_avg - z_sample))
+	#	tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_z_sample_avg)
 
 	#print('z_sample.shape', z_sample.shape)
 
@@ -157,4 +157,3 @@ def sample_prior(settings):
 	logits_prior_prob = math.log(prior_prob / (1. - prior_prob))
 	dist_prior = tf.contrib.distributions.Logistic(loc=logits_prior_prob, scale=1./temperature)
 	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')
-
