@@ -41,8 +41,8 @@ def create(settings):
 	discriminator_vars = [var for var in tf.trainable_variables() if var.name.startswith('model/discriminator')]
 
 	#print('Vars not in elbo or discriminator set:', [var for var in tf.trainable_variables() if not ])
-	#print('elbo_vars')
-	#print(elbo_vars)
+	print('elbo_vars')
+	print(elbo_vars)
 
 	# Add to the Graph operations that train the model.
 	if not settings['optimizer'] is 'adam':

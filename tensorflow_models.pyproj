@@ -129,6 +129,12 @@
     <Compile Include="models\avb_concrete_unit.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="models\avb_debug.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\avb_debug2.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\avb_normal.py" />
     <Compile Include="models\avb_relaxed.py">
       <SubType>Code</SubType>
@@ -140,6 +146,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\emvb_concrete.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\emvb_debug.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\emvb_debug2.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\emvb_final.py">
@@ -193,6 +205,9 @@
     <Compile Include="snapshot.py" />
     <Compile Include="timer.py" />
     <Compile Include="trainers\avb.py" />
+    <Compile Include="trainers\avb_debug_np.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="trainers\avb_np.py">
       <SubType>Code</SubType>
     </Compile>
@@ -217,6 +232,9 @@
     <Compile Include="trainers\gan.py" />
     <Compile Include="trainers\svb.py" />
     <Compile Include="trainers\svb_concrete.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="trainers\svb_concrete_debug_np.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="trainers\svb_concrete_np.py">
