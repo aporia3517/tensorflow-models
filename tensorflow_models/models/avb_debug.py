@@ -101,8 +101,8 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	#z_sample = tf.identity(tf.sigmoid(logits_sample) * 2. - 1.)
 
 	dist_z_given_x_ac = tf.contrib.distributions.Logistic(loc=logits_z_ac/temperature, scale=tf.constant(1./temperature, shape=logits_z_ac.shape))
-	#logits_sample_ac = tf.identity(tf.cast(dist_z_given_x_ac.sample(), dtype=tf.float32))
-	#z_sample_ac = tf.identity(tf.sigmoid(logits_sample) * 2. - 1.)
+	logits_sample_ac = tf.identity(tf.cast(dist_z_given_x_ac.sample(), dtype=tf.float32))
+	z_sample_ac = tf.identity(tf.sigmoid(logits_sample_ac) * 2. - 1.)
 
 	dist_prior_ac = tf.contrib.distributions.Logistic(loc=0., scale=1.)
 	sample_prior_ac = tf.cast(dist_prior_ac.sample(sample_shape=(settings['batch_size'], settings['latent_dimension'])), dtype=tf.float32)
@@ -112,6 +112,9 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	z_sample = tf.identity(tf.sigmoid(logits_sample) * 2. - 1.)
 
 	sample_for_discr = tf.identity(temperature * logits_sample - logits_z_ac, name='z/sample')
+	#sample_for_discr = z_sample
+
+	#print(logits_sample._shape, logits_z_ac.shape, sample_prior_ac.shape)
 
 	#print(logits_sample.shape)
 	#print(z_sample.shape)
@@ -126,6 +129,8 @@ def create_probs(settings, inputs, is_training, reuse=False):
 
 	logits_prior = tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='z/prior')
 	z_prior = tf.identity(tf.sigmoid(logits_prior)*2. - 1.)
+
+	#sample_prior_ac = z_sample_ac
 
 	#print(logits_prior.shape)
 	#print(z_prior.shape)

@@ -33,7 +33,7 @@ import tensorflow_models as tf_models
 # lg_p_x_given_z ~ batch_size x 784
 # adversary ~ ?
 # prior_adversary ~ ?
-def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name, scale, transform, discriminator, prior_discriminator):	
+def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name, scale, transform, discriminator, prior_discriminator, lg_r_alpha, lg_p_z):	
 	# Eq (3.9)
 	# NOTE: Take negative since we are minimizing
 
@@ -140,8 +140,8 @@ def loss(loglike, D_fake, D_real, D_inter, Z_inter, X, name, scale, transform, d
 	#print((-loglike + tf.squeeze(discriminator)).shape)
 	
 
-	elbo_loss = tf.reduce_mean(-loglike) - regu_term
-	elbo_avb = tf.reduce_mean(-loglike + tf.squeeze(discriminator))
+	elbo_loss = tf.reduce_mean(-loglike + lg_r_alpha - lg_p_z) - regu_term
+	elbo_avb = tf.reduce_mean(-loglike + lg_r_alpha - lg_p_z + tf.squeeze(discriminator))
 
 	#print(tf.reduce_mean(-loglike).shape, regu_term.shape, elbo_loss.shape)
 	#raise Exception()
@@ -172,7 +172,10 @@ def create(name='train', settings=None):
 	discriminator = tf_models.get_output(name + '/discriminator/generator')
 	prior_discriminator = tf_models.get_output(name + '/discriminator/prior')
 
-	return loss(lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, x, name, settings['em_scale'], settings['em_transform'], discriminator, prior_discriminator)
+	lg_r_alpha = tf.squeeze(tf_models.get_output(name + '/r_alpha/log_prob'))
+	lg_p_z = tf.squeeze(tf_models.get_output(name + '/p_z/log_prob'))
+
+	return loss(lg_p_x_given_z, critic, prior_critic, inter_critic, z_inter, x, name, settings['em_scale'], settings['em_transform'], discriminator, prior_discriminator, lg_r_alpha, lg_p_z)
 
 def get_input(name):
 	ops = tf.get_collection(tf_models.GraphKeys.INPUTS)
