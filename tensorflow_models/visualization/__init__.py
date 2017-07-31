@@ -42,8 +42,8 @@ class BaseVisualizer(object):
 		self._encoder_op = encoder_op
 		self._decoder_op = decoder_op
 
-		if not self._decoder is None:
-			assert(settings['batch_size'] >= settings['sample_size'])
+		#if not self._decoder is None:
+		#	assert(settings['batch_size'] >= settings['sample_size'])
 		
 	def __enter__(self):
 		self._resume()

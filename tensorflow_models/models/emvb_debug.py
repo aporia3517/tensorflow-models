@@ -84,12 +84,23 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	inputs_ac = tf.tile(tf.expand_dims(tf_models.flatten(inputs), axis=0), multiples=[settings['ac_size'],1,1])
 	noise_ac = tf.random_normal((settings['ac_size'], settings['batch_size'], settings['noise_dimension']), 0, 1, dtype=tf.float32)
 
+	ac_batchshape = tf_models.batchshape(settings)
+	ac_batchshape[0] *= settings['ac_size']
+
 	# Use black-box inference network to sample z, given inputs and noise
 	with tf.variable_scope('encoder', reuse=reuse):
 		logits_z = encoder_network(settings, inputs, noise, is_training=is_training)
 		tf.get_variable_scope().reuse_variables()
-		logits_z_ac = encoder_network(settings, tf.reshape(inputs_ac, (settings['ac_size']*settings['batch_size'], -1)), tf.reshape(noise_ac, (settings['ac_size']*settings['batch_size'], -1)), is_training=is_training)
-		logits_z_ac = tf.reduce_mean(tf.reshape(logits_z_ac, (settings['ac_size'], settings['batch_size'], -1)), 0)
+		#logits_z_ac = encoder_network(settings, tf.reshape(inputs_ac, (settings['ac_size']*settings['batch_size'], -1)), tf.reshape(noise_ac, (settings['ac_size']*settings['batch_size'], -1)), is_training=is_training)
+		logits_z_ac = encoder_network(settings, tf.reshape(inputs_ac, ac_batchshape), tf.reshape(noise_ac, (settings['ac_size']*settings['batch_size'], -1)), is_training=is_training)
+		#logits_z_ac = tf.reduce_mean(tf.reshape(logits_z_ac, (settings['ac_size'], settings['batch_size'], -1)), 0)
+		#logits_z_ac = tf.reduce_logsumexp(tf.reshape(logits_z_ac, (settings['ac_size'], settings['batch_size'], -1)), 0) - tf.log(tf.constant(settings['ac_size'], dtype=tf.float32))
+		#logits_z_ac = tf.stop_gradient(tf.reduce_logsumexp(tf.reshape(logits_z_ac, (settings['ac_size'], settings['batch_size'], -1)), 0) - tf.log(tf.constant(settings['ac_size'], dtype=tf.float32)))
+		
+		logits_z_ac = tf.stop_gradient(tf.reduce_mean(tf.reshape(logits_z_ac, (settings['ac_size'], settings['batch_size'], -1)), 0))
+		#mean_p = tf.reduce_mean(tf.sigmoid(tf.reshape(logits_z_ac, (settings['ac_size'], settings['batch_size'], -1))), 0)
+		#logits_z_ac = tf.log(mean_p) - tf.log(1. - mean_p)
+		#logits_z_ac = tf.log(tf.divide(mean_p, 1. - mean_p))
 	
 	dist_z_given_x_ac = tf.contrib.distributions.Logistic(loc=logits_z_ac/temperature, scale=tf.constant(1./temperature, shape=logits_z_ac.shape))
 	logits_sample_ac = tf.identity(tf.cast(dist_z_given_x_ac.sample(), dtype=tf.float32))
@@ -100,9 +111,12 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	z_sample = tf.sigmoid(logits_sample) * 2. - 1.
 
 	dist_prior_ac = tf.contrib.distributions.Logistic(loc=0., scale=1.)
-	sample_prior_ac = tf.cast(dist_prior_ac.sample(sample_shape=(settings['batch_size'], settings['latent_dimension'])), dtype=tf.float32)
 
+	sample_prior_ac = tf.cast(dist_prior_ac.sample(sample_shape=(settings['batch_size'], settings['latent_dimension'])), dtype=tf.float32)
 	sample_for_discr = tf.identity(temperature * logits_sample - logits_z_ac, name='z/sample')
+
+	#sample_prior_ac = tf.sigmoid(tf.cast(dist_prior_ac.sample(sample_shape=(settings['batch_size'], settings['latent_dimension'])), dtype=tf.float32))
+	#sample_for_discr = tf.identity(tf.sigmoid(temperature * logits_sample - logits_z_ac), name='z/sample')
 
 	# Prior
 	temperature_prior = 0.5

@@ -1,4 +1,4 @@
-﻿# MIT License
+# MIT License
 #
 # Copyright (c) 2017, Stefan Webb. All Rights Reserved.
 #
@@ -42,15 +42,34 @@ def training(loss, learning_rate=0.001, var_list=None, step=None, clip_grads=Fal
 	with tf.control_dependencies(update_ops):
 		if step is None:
 			if var_list is None:
-				train_op = optimizer.minimize(loss)
+				if not clip_grads:
+					train_op = optimizer.minimize(loss)
+				else:
+					gvs = optimizer.compute_gradients(loss)
+					capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs]
+					train_op = optimizer.apply_gradients(capped_gvs)
 			else:
-				train_op = optimizer.minimize(loss, var_list=var_list)
+				if not clip_grads:
+					train_op = optimizer.minimize(loss, var_list=var_list)
+				else:
+					gvs = optimizer.compute_gradients(loss, var_list=var_list)
+					capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs]
+					train_op = optimizer.apply_gradients(capped_gvs)
 		else:
 			if var_list is None:
-				train_op = optimizer.minimize(loss, global_step=step)
+				if not clip_grads:
+					train_op = optimizer.minimize(loss, global_step=step)
+				else:
+					gvs = optimizer.compute_gradients(loss, global_step=step)
+					capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs]
+					train_op = optimizer.apply_gradients(capped_gvs)
 			else:
-				train_op = optimizer.minimize(loss, global_step=step, var_list=var_list)
+				if not clip_grads:
+					train_op = optimizer.minimize(loss, global_step=step, var_list=var_list)
+				else:
+					gvs = optimizer.compute_gradients(loss, var_list=var_list)
+					capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs]
+					train_op = optimizer.apply_gradients(capped_gvs)
 
 	# TODO: Clip gradients!
-
 	return train_op

@@ -83,7 +83,8 @@ def batchshape(settings):
 		return unflattened_batchshape(settings)
 
 def safe_log(x, **kwargs):
-	return tf.log(x + 1e-16, **kwargs)
+	#return tf.log(x + 1e-16, **kwargs)
+	return tf.log(x + 1e-8, **kwargs)
 
 def count_batches(settings, subset=None):
 	if not subset is None:

@@ -91,7 +91,8 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		logits_z = encoder_network(settings, inputs, noise, is_training=is_training)
 		tf.get_variable_scope().reuse_variables()
 		logits_z_ac = encoder_network(settings, tf.reshape(inputs_ac, (settings['ac_size']*settings['batch_size'], -1)), tf.reshape(noise_ac, (settings['ac_size']*settings['batch_size'], -1)), is_training=is_training)
-		logits_z_ac = tf.reduce_mean(tf.reshape(logits_z_ac, (settings['ac_size'], settings['batch_size'], -1)), 0)
+		#logits_z_ac = tf.reduce_mean(tf.reshape(logits_z_ac, (settings['ac_size'], settings['batch_size'], -1)), 0)
+		logits_z_ac = tf.stop_gradient(tf.reduce_logsumexp(tf.reshape(logits_z_ac, (settings['ac_size'], settings['batch_size'], -1)), 0) - tf.log(tf.constant(settings['ac_size'], dtype=tf.float32)))
 
 		#print('logits_z_ac.shape', logits_z_ac.shape)
 		#raise Exception()

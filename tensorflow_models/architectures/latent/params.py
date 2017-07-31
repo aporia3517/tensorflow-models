@@ -107,7 +107,7 @@ def normal_dcgan(settings, inputs, is_training):
 			h = slim.conv2d(h, dims[i + 1], scope='h{}'.format(i+1))
 			#print('h.name', h.name,'h.shape', h.shape)
 			
-		h = tf.reshape(h, [100, -1])
+		h = tf.reshape(h, [inputs.shape.as_list()[0], -1])
 		#print('h.shape', h.shape)
 
 	mean_z = slim.fully_connected(h, settings['latent_dimension'], activation_fn=tf.identity, scope='mean', normalizer_fn=None, normalizer_params=None)
@@ -162,7 +162,7 @@ def bernoulli_dcgan(settings, inputs, is_training):
 			h = slim.conv2d(h, dims[i + 1], scope='h{}'.format(i+1))
 			#print('h.name', h.name,'h.shape', h.shape)
 			
-		h = tf.reshape(h, [100, -1])
+		h = tf.reshape(h, [inputs.shape.as_list()[0], -1])
 		#print('h.shape', h.shape)
 
 	logits_z = slim.fully_connected(h, settings['latent_dimension'], activation_fn=tf.identity, scope='logits', normalizer_fn=None, normalizer_params=None)

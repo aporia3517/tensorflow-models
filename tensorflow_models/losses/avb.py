@@ -33,6 +33,7 @@ import tensorflow_models as tf_models
 # lg_p_x_given_z ~ batch_size x 784
 # adversary ~ ?
 # prior_adversary ~ ?
+#def loss(lg_p_x_given_z, discriminator, prior_discriminator, x, lg_r_alpha, lg_p_z, z_sample, z_prior, bandwidth, name):	
 def loss(lg_p_x_given_z, discriminator, prior_discriminator, x, lg_r_alpha, lg_p_z, name):	
 	"""# DEBUG
 	print('lg_p_x_given_z.shape', lg_p_x_given_z.shape)
@@ -52,13 +53,13 @@ def loss(lg_p_x_given_z, discriminator, prior_discriminator, x, lg_r_alpha, lg_p
 	#grad2 = tf.gradients(discriminator, [x])
 	#grad_norm_fake = tf.reduce_sum(tf.square(tf.concat([grad[0], tf_models.flatten(grad2[0])], axis=1)), axis=1)
 
-
 	#grad = tf.gradients(prior_discriminator, [z_prior])
 	#grad2 = tf.gradients(prior_discriminator, [x])
 	#grad_norm_prior = tf.reduce_sum(tf.square(tf.concat([grad[0], tf_models.flatten(grad2[0])], axis=1)), axis=1)
 
 	#penalty = tf.square(1. - tf.nn.sigmoid(discriminator)) * grad_norm_fake + tf.square(tf.nn.sigmoid(prior_discriminator)) * grad_norm_prior
 	#print('penalty.shape', penalty.shape)
+	#raise Exception()
 
 	# Eq (3.3)
 	discriminator_loss = -tf.reduce_mean(tf_models.safe_log(tf.nn.sigmoid(discriminator)) + tf_models.safe_log(1. - tf.nn.sigmoid(prior_discriminator)))
@@ -86,6 +87,7 @@ def create(name='train', settings=None):
 	#print('prior_discriminator.shape', prior_discriminator.shape)
 	#raise Exception()
 
+	#return loss(lg_p_x_given_z, discriminator, prior_discriminator, x, lg_r_alpha, lg_p_z, z_sample, z_prior, settings['avb_bandwidth'], name=name)
 	return loss(lg_p_x_given_z, discriminator, prior_discriminator, x, lg_r_alpha, lg_p_z, name=name)
 
 def get_input(name):

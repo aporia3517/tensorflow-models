@@ -209,6 +209,26 @@ def plot_reconstructions(filepath, truth, reconstructions, ext='png'):
 	fig.savefig(filepath + '.' + ext, dpi=80)
 	plt.close(fig)
 
+def plot_flippings(filepath, reconstructions, ext='png'):
+	versions, iters, digits, width, height, _ = reconstructions.shape
+
+	# Normalize codes
+	#max_val = np.max(reconstructions)
+	#min_val = np.min(reconstructions)
+	#range_val = max_val - min_val
+	#reconstructions = (reconstructions - min_val) / range_val
+
+	fig = plt.figure(figsize = (10, 5), dpi=80)
+
+	for idx in range(versions):
+		for jdx in range(digits):
+			ax = fig.add_subplot(digits, versions, versions*jdx + idx + 1)
+			ax.imshow(np.reshape(reconstructions[idx, -1, jdx], (width, height)), cmap = 'gray')
+			ax.axis('off')
+
+	fig.savefig(filepath + '.' + ext, dpi=80)
+	plt.close(fig)
+
 def gan_experiment(filepath, title, ys, ext='png'):
 	x = np.arange(1, len(ys[0]) + 1, dtype=np.int32)
 
