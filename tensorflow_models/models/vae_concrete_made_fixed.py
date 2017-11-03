@@ -52,7 +52,13 @@ def create_prior(settings):
 	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32) * 2. - 1., name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
+	temperature = 2./3.
+
+	x_placeholder = tf_models.samples_placeholder()
+	assert(not x_placeholder is None)
+
 	with tf.variable_scope('encoder', reuse=reuse):
+		# Need to draw a sample from the encoder first, since the parameters of the MADE depend on the sample!
 		index = tf.constant(0)
 		condition = lambda i, s: tf.less(i, settings['latent_dimension'])
 
@@ -67,17 +73,16 @@ def create_encoder(settings, reuse=True):
 		gumbel_noise = tf.log(uniform) - tf.log1p(-1. * uniform)
 
 		def update(index, logits_sample):
-			logits_z = tf_models.made.make_made_logistic_single(logits_sample, inputs, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], activation_fn=tf.tanh)
+			# Calculate the logits for the current 
+			logits_z = tf_models.made.make_made_logistic_single(logits_sample, x_placeholder, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], activation_fn=tf.tanh)
 			
-			made_dist = tf_models.logistic_fixed_noise.Logistic(loc=logits_z[:,index]/temperature, scale=tf.constant(1./temperature, shape=logits_z[:,index].shape), gumbel_noise=gumbel_noise[:,:,index])
-			new_logits = made_dist.sample()
-
-			logits_sample = tf.reshape(tf.concat([logits_sample[:,:index], tf.reshape(new_logits, [settings['batch_size'],1]), logits_sample[:,(index+1):]], axis=1), [settings['batch_size'], settings['latent_dimension']])
+			made_dist = tf_models.logistic_fixed_noise.Logistic(loc=logits_z/temperature, scale=tf.constant(1./temperature, shape=logits_z.shape), gumbel_noise=gumbel_noise)
+			logits_sample = made_dist.sample()
 
 			return tf.add(index, 1), logits_sample
 
-		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, parallel_iterations=1, shape_invariants=[index.get_shape(), tf.TensorShape([settings['batch_size'], 30])])
-
+		# TODO: Do I need to stop the gradients through the while_loop?
+		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, parallel_iterations=1, shape_invariants=[index.get_shape(), logits_sample.shape]) # swap_memory=True
 
 	return tf.identity(tf.sigmoid(logits_sample) * 2.0 - 1., name='q_z_given_x/sample')
 
@@ -145,47 +150,18 @@ def create_probs(settings, inputs, is_training, reuse=False):
 
 		def update(index, logits_sample):
 			# Calculate the logits for the current 
-			#logits_z, coefs_z = tf_models.made.make_made_logistic(logits_sample, inputs, tf_masks, 200, 784, hidden_dims, K=count_mixture_components, activation_fn=tf.tanh)
-
-			#print(logits_z.shape, coefs_z.shape)
-			#raise Exception()
-
-			#components = []
-			#for k in range(count_mixture_components):
-			#	components.append(tf_models.logistic_fixed_noise.Logistic(loc=logits_z[:, :, k]/temperature, scale=tf.constant(1./temperature, shape=logits_z[:, :, k].shape), gumbel_noise=gumbel_noise))
-
-			#mixture_model = dist.Mixture(cat=dist.Categorical(probs=tf.clip_by_value(coefs_z, 1e-6, 1 - 1e-6)), components=components)
-			#logits_sample = mixture_model.sample(seed=0)
-
-			#logits_complete = tf.concat([logits_sample], axis=1)
 			logits_z = tf_models.made.make_made_logistic_single(logits_sample, inputs, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], activation_fn=tf.tanh)
-			#print(logits_z.shape)
-			#raise Exception()
-
-			#made_dist = tf_models.logistic_fixed_noise.Logistic(loc=logits_z/temperature, scale=tf.constant(1./temperature, shape=logits_z.shape), gumbel_noise=gumbel_noise)
-			#logits_sample = made_dist.sample()
-
-			made_dist = tf_models.logistic_fixed_noise.Logistic(loc=logits_z[:,index]/temperature, scale=tf.constant(1./temperature, shape=logits_z[:,index].shape), gumbel_noise=gumbel_noise[:,:,index])
-			new_logits = made_dist.sample()
-
-			#print(new_logits.shape)
-			#print(logits_sample[:,:index].shape)
-			#raise Exception()
-
-			logits_sample = tf.reshape(tf.concat([logits_sample[:,:index], tf.reshape(new_logits, [settings['batch_size'],1]), logits_sample[:,(index+1):]], axis=1), [settings['batch_size'], settings['latent_dimension']])
-
-			#print(logits_sample.shape)
-			#raise Exception()
+			
+			made_dist = tf_models.logistic_fixed_noise.Logistic(loc=logits_z/temperature, scale=tf.constant(1./temperature, shape=logits_z.shape), gumbel_noise=gumbel_noise)
+			logits_sample = made_dist.sample()
 
 			return tf.add(index, 1), logits_sample
 
 		# TODO: Do I need to stop the gradients through the while_loop?
-		#_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, parallel_iterations=1, shape_invariants=[index.get_shape(), logits_sample.shape]) # swap_memory=True
-		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, parallel_iterations=1, shape_invariants=[index.get_shape(), tf.TensorShape([settings['batch_size'], 30])]) # swap_memory=True
+		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, parallel_iterations=1, shape_invariants=[index.get_shape(), logits_sample.shape]) # swap_memory=True
 
 		# Use the sample from the MADE to evaluate the final logitistic parameters
 		tf.get_variable_scope().reuse_variables()
-		#logits_z, coefs_z = tf_models.made.make_made_logistic(logits_sample, inputs, tf_masks, 200, 784, hidden_dims, K=count_mixture_components, activation_fn=tf.tanh)
 		logits_z = tf_models.made.make_made_logistic_single(logits_sample, inputs, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], activation_fn=tf.tanh)
 
 	# Create the final encoder distribution

@@ -52,6 +52,11 @@ def create_prior(settings):
 	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32) * 2. - 1., name='p_z/sample')
 
 def create_encoder(settings, reuse=True):
+	temperature = 2./3.
+
+	x_placeholder = tf_models.samples_placeholder()
+	assert(not x_placeholder is None)
+
 	with tf.variable_scope('encoder', reuse=reuse):
 		index = tf.constant(0)
 		condition = lambda i, s: tf.less(i, settings['latent_dimension'])
@@ -67,7 +72,7 @@ def create_encoder(settings, reuse=True):
 		gumbel_noise = tf.log(uniform) - tf.log1p(-1. * uniform)
 
 		def update(index, logits_sample):
-			logits_z = tf_models.made.make_made_logistic_single(logits_sample, inputs, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], activation_fn=tf.tanh)
+			logits_z = tf_models.made.make_made_logistic_single(logits_sample, x_placeholder, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], activation_fn=tf.tanh)
 			
 			made_dist = tf_models.logistic_fixed_noise.Logistic(loc=logits_z[:,index]/temperature, scale=tf.constant(1./temperature, shape=logits_z[:,index].shape), gumbel_noise=gumbel_noise[:,:,index])
 			new_logits = made_dist.sample()
