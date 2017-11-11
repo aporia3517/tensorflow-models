@@ -31,6 +31,7 @@ import math
 
 import tensorflow_models as tf_models
 import tensorflow_models.relaxed_onehot_categorical_fixed_noise as dist_fixed
+import tensorflow_models.gumbel as gumbel
 
 def create_placeholders(settings):
 	K = settings['count_categories']
@@ -135,28 +136,83 @@ def create_probs(settings, inputs, is_training, reuse=False):
 
 	return lg_p_x_given_z, lg_p_z, lg_q_z_given_x
 
-def lg_likelihood(x, z, settings, reuse=True, is_training=False):
+"""def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	decoder_network = settings['architecture']['decoder']['fn']
+	K = settings['count_categories']
+	latent_batchshape = (settings['batch_size'], settings['latent_dimension'], K)
+
+	z = tf.reshape(z, latent_batchshape)
+	real_z = z - tf.expand_dims(tf.reduce_logsumexp(z, axis=2), axis=-1)
 	real_z = tf.exp(z)*2. - 1.
+
+	#print(z.shape, real_z.shape, tf.reduce_logsumexp(z, axis=2).shape, tf.expand_dims(tf.reduce_logsumexp(z, axis=2), axis=-1).shape)
+	#raise Exception()
 
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
 			logits_x = decoder_network(settings, tf.reshape(real_z, (settings['batch_size'], -1)), is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
+
+	#print('lg_likelihood.shape', tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1).shape)
+
+	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)"""
+
+def lg_likelihood(x, z, settings, reuse=True, is_training=False):
+	decoder_network = settings['architecture']['decoder']['fn']
+	latent_batchshape = (settings['batch_size'], settings['latent_dimension'], 1)
+	real_z1 = tf.reshape(tf.sigmoid(z)*2. - 1., latent_batchshape)
+	real_z2 = tf.reshape((1.-tf.sigmoid(z))*2. - 1., latent_batchshape)
+	real_z = tf.reshape(tf.concat([real_z1, real_z2], axis=2), (settings['batch_size'],-1))
+
+	with tf.variable_scope('model'):
+		with tf.variable_scope('decoder', reuse=reuse):
+			logits_x = decoder_network(settings, real_z, is_training=is_training)
+	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
+
+	#print('lg_likelihood.shape', tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1).shape)
+
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
-def lg_prior(z, settings, reuse=True, is_training=False):
+"""def lg_prior(z, settings, reuse=True, is_training=False):
 	temperature_prior = 0.5
 	K = settings['count_categories']
 	latent_batchshape = (settings['batch_size'], settings['latent_dimension'], K)
 	
-	dist_prior = tf.contrib.distributions.ExpRelaxedOneHotCategorical(temperature=temperature_prior, logits=tf.constant(0., shape=latent_batchshape))
-	return tf.reduce_sum(dist_prior.log_prob(tf.reshape(z, latent_batchshape)), 1)
+	#dist_prior = tf.contrib.distributions.ExpRelaxedOneHotCategorical(temperature=temperature_prior, logits=tf.constant(0., shape=latent_batchshape))
+	dist_prior = gumbel._Gumbel(loc=0., scale=1./temperature_prior)
+	#return tf.reduce_sum(dist_prior.log_prob(tf.reshape(z, latent_batchshape)), [1,2])
+	#print('lg_prior.shape', tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1).shape)
+
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)
 
 def sample_prior(settings):
 	temperature_prior = 0.5
 	K = settings['count_categories']
 	latent_batchshape = (settings['batch_size'], settings['latent_dimension'], K)
 	
-	dist_prior = tf.contrib.distributions.ExpRelaxedOneHotCategorical(temperature=temperature_prior, logits=tf.constant(0., shape=latent_batchshape))
-	return tf.identity(tf.cast(tf.reshape(dist_prior.sample(), (settings['batch_size'], -1)), dtype=tf.float32), name='p_z/sample')
+	#dist_prior = tf.contrib.distributions.ExpRelaxedOneHotCategorical(temperature=temperature_prior, logits=tf.constant(0., shape=latent_batchshape))
+	dist_prior = gumbel._Gumbel(loc=0., scale=1./temperature_prior)
+
+	#print('sample_prior.shape', tf.reshape(dist_prior.sample(latent_batchshape), (settings['batch_size'], -1)).shape)
+
+	return tf.identity(tf.cast(tf.reshape(dist_prior.sample(latent_batchshape), (settings['batch_size'], -1)), dtype=tf.float32), name='p_z/sample')"""
+
+def lg_prior(z, settings, reuse=True, is_training=False):
+	temperature = 0.5
+	prior_prob = settings['prior_prob']
+	logits_prior_prob = math.log(prior_prob / (1. - prior_prob))
+	dist_prior = tf.contrib.distributions.Logistic(loc=logits_prior_prob/temperature, scale=1./temperature)
+
+	#print('lg_prior.shape', tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1).shape)
+
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)
+
+def sample_prior(settings):
+	temperature = 0.5
+	prior_prob = settings['prior_prob']
+	logits_prior_prob = math.log(prior_prob / (1. - prior_prob))
+	dist_prior = tf.contrib.distributions.Logistic(loc=logits_prior_prob/temperature, scale=1./temperature)
+
+	#print('sample_prior.shape', tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32).shape)
+
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')

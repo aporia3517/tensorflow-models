@@ -210,7 +210,7 @@ def create_probs(settings, inputs, is_training, reuse=False):
 
 	return lg_p_x_given_z, lg_p_z, lg_q_z_given_x
 
-def lg_likelihood(x, z, settings, reuse=True, is_training=False):
+"""def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 	decoder_network = settings['architecture']['decoder']['fn']
 	real_z = tf.exp(z)*2. - 1.
 
@@ -234,4 +234,34 @@ def sample_prior(settings):
 	latent_batchshape = (settings['batch_size'], settings['latent_dimension'], K)
 	
 	dist_prior = tf.contrib.distributions.ExpRelaxedOneHotCategorical(temperature=temperature_prior, logits=tf.constant(0., shape=latent_batchshape))
-	return tf.identity(tf.cast(tf.reshape(dist_prior.sample(), (settings['batch_size'], -1)), dtype=tf.float32), name='p_z/sample')
+	return tf.identity(tf.cast(tf.reshape(dist_prior.sample(), (settings['batch_size'], -1)), dtype=tf.float32), name='p_z/sample')"""
+
+def lg_likelihood(x, z, settings, reuse=True, is_training=False):
+	decoder_network = settings['architecture']['decoder']['fn']
+	latent_batchshape = (settings['batch_size'], settings['latent_dimension'], 1)
+	real_z1 = tf.reshape(tf.sigmoid(z)*2. - 1., latent_batchshape)
+	real_z2 = tf.reshape((1.-tf.sigmoid(z))*2. - 1., latent_batchshape)
+	real_z = tf.reshape(tf.concat([real_z1, real_z2], axis=2), (settings['batch_size'],-1))
+
+	with tf.variable_scope('model'):
+		with tf.variable_scope('decoder', reuse=reuse):
+			logits_x = decoder_network(settings, real_z, is_training=is_training)
+	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
+
+	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
+
+def lg_prior(z, settings, reuse=True, is_training=False):
+	temperature = 0.5
+	prior_prob = settings['prior_prob']
+	logits_prior_prob = math.log(prior_prob / (1. - prior_prob))
+	dist_prior = tf.contrib.distributions.Logistic(loc=logits_prior_prob/temperature, scale=1./temperature)
+
+	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)
+
+def sample_prior(settings):
+	temperature = 0.5
+	prior_prob = settings['prior_prob']
+	logits_prior_prob = math.log(prior_prob / (1. - prior_prob))
+	dist_prior = tf.contrib.distributions.Logistic(loc=logits_prior_prob/temperature, scale=1./temperature)
+
+	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')

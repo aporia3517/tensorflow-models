@@ -142,6 +142,9 @@ def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 		with tf.variable_scope('decoder', reuse=reuse):
 			logits_x = decoder_network(settings, real_z, is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
+
+	#print('lg_likelihood.shape', tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1).shape)
+
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
 def lg_prior(z, settings, reuse=True, is_training=False):
@@ -149,6 +152,9 @@ def lg_prior(z, settings, reuse=True, is_training=False):
 	prior_prob = settings['prior_prob']
 	logits_prior_prob = math.log(prior_prob / (1. - prior_prob))
 	dist_prior = tf.contrib.distributions.Logistic(loc=logits_prior_prob/temperature, scale=1./temperature)
+
+	#print('lg_prior.shape', tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1).shape)
+
 	return tf.reduce_sum(tf_models.flatten(dist_prior.log_prob(z)), 1)
 
 def sample_prior(settings):
@@ -156,4 +162,7 @@ def sample_prior(settings):
 	prior_prob = settings['prior_prob']
 	logits_prior_prob = math.log(prior_prob / (1. - prior_prob))
 	dist_prior = tf.contrib.distributions.Logistic(loc=logits_prior_prob/temperature, scale=1./temperature)
+
+	#print('sample_prior.shape', tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32).shape)
+
 	return tf.identity(tf.cast(dist_prior.sample(sample_shape=tf_models.latentshape(settings)), dtype=tf.float32), name='p_z/sample')
