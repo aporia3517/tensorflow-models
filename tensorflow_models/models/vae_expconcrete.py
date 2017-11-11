@@ -141,7 +141,7 @@ def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
-			logits_x = decoder_network(settings, tf.reshape(real_z, (settings['batch_size', -1])), is_training=is_training)
+			logits_x = decoder_network(settings, tf.reshape(real_z, (settings['batch_size'], -1)), is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 

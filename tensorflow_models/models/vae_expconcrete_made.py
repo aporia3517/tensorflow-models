@@ -90,7 +90,7 @@ def create_encoder(settings, reuse=True):
 			return tf.add(index, 1), logits_sample
 
 		# TODO: Do I need to stop the gradients through the while_loop?
-		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, parallel_iterations=1, shape_invariants=[index.get_shape(), logits_sample.shape]) # swap_memory=True
+		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, shape_invariants=[index.get_shape(), logits_sample.shape]) # swap_memory=True, parallel_iterations=1,
 
 		
 	return tf.identity(tf.exp(logits_sample) * 2.0 - 1., name='q_z_given_x/sample')
@@ -173,7 +173,7 @@ def create_probs(settings, inputs, is_training, reuse=False):
 			return tf.add(index, 1), logits_sample
 
 		# TODO: Do I need to stop the gradients through the while_loop?
-		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, parallel_iterations=1, shape_invariants=[index.get_shape(), logits_sample.shape]) # swap_memory=True
+		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, shape_invariants=[index.get_shape(), logits_sample.shape]) # swap_memory=True, parallel_iterations=1
 
 		# Use the sample from the MADE to evaluate the final logitistic parameters
 		tf.get_variable_scope().reuse_variables()
@@ -216,7 +216,7 @@ def lg_likelihood(x, z, settings, reuse=True, is_training=False):
 
 	with tf.variable_scope('model'):
 		with tf.variable_scope('decoder', reuse=reuse):
-			logits_x = decoder_network(settings, tf.reshape(real_z, (settings['batch_size', -1])), is_training=is_training)
+			logits_x = decoder_network(settings, tf.reshape(real_z, (settings['batch_size'], -1)), is_training=is_training)
 	dist_x_given_z = tf.contrib.distributions.Bernoulli(logits=tf_models.flatten(logits_x), dtype=tf.float32)
 	return tf.reduce_sum(dist_x_given_z.log_prob(tf_models.flatten(x)), 1)
 
