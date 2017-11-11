@@ -226,7 +226,7 @@ def lg_prior(z, settings, reuse=True, is_training=False):
 	latent_batchshape = (settings['batch_size'], settings['latent_dimension'], K)
 	
 	dist_prior = tf.contrib.distributions.ExpRelaxedOneHotCategorical(temperature=temperature_prior, logits=tf.constant(0., shape=latent_batchshape))
-	return tf.reduce_sum(dist_prior.log_prob(z), 1)
+	return tf.reduce_sum(dist_prior.log_prob(tf.reshape(z, latent_batchshape)), 1)
 
 def sample_prior(settings):
 	temperature_prior = 0.5
@@ -234,4 +234,4 @@ def sample_prior(settings):
 	latent_batchshape = (settings['batch_size'], settings['latent_dimension'], K)
 	
 	dist_prior = tf.contrib.distributions.ExpRelaxedOneHotCategorical(temperature=temperature_prior, logits=tf.constant(0., shape=latent_batchshape))
-	return tf.identity(tf.cast(dist_prior.sample(), dtype=tf.float32), name='p_z/sample')
+	return tf.identity(tf.cast(tf.reshape(dist_prior.sample(), (settings['batch_size'], -1)), dtype=tf.float32), name='p_z/sample')
