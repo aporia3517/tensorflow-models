@@ -179,6 +179,9 @@
     </Compile>
     <Compile Include="models\vae_concrete_made.py" />
     <Compile Include="models\vae_concrete_made_fixed.py" />
+    <Compile Include="models\vae_expconcrete.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\vae_iw.py">
       <SubType>Code</SubType>
     </Compile>

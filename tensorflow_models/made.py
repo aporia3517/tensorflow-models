@@ -120,23 +120,56 @@ def make_made_logistic_single(inputs, parents, masks, input_dimension, parents_d
 
     return logits
 
-def made_masks(input_dimension, parents_dimension, hidden_dimensions):
+# Turns out this is the same as make_made for mixture model!
+def make_made_categorical(inputs, parents, masks, input_dimension, parents_dimension, hidden_dimensions, count_categories=2, activation_fn=tf.nn.relu):
+    inputs = tf.concat([parents, inputs], 1)
+    layer = inputs
+
+    # Create the neural network using the weight masks
+    # First create the hidden layers
+    dimensions = [input_dimension + parents_dimension] + hidden_dimensions  # + [input_dimension]
+    for idx in range(len(hidden_dimensions)):
+        with tf.variable_scope('layer_{}'.format(idx)):
+            weights = tf.get_variable("weights", [dimensions[idx], dimensions[idx + 1]], dtype=tf.float32, initializer=tf.random_uniform_initializer(minval=-0.01, maxval=0.01))
+            biases = tf.get_variable("biases", [dimensions[idx + 1]], dtype=tf.float32, initializer=tf.random_normal_initializer(stddev=0.01))
+            masked_weights = tf.multiply(weights, masks[idx])
+
+            layer = activation_fn(tf.add(tf.matmul(layer, masked_weights), biases))
+
+    # Create the output layer
+    with tf.variable_scope('layer_{}'.format(len(hidden_dimensions))):
+        # TODO: Change so get means/scales/coefs
+        weights_logits = tf.get_variable("weights_logits", [dimensions[-1], input_dimension, count_categories], dtype=tf.float32, initializer=tf.random_uniform_initializer(minval=-0.01, maxval=0.01))
+        skip_weights_logits = tf.get_variable("skip_weights_logits", [dimensions[0], input_dimension, count_categories], dtype=tf.float32, initializer=tf.random_uniform_initializer(minval=-0.01, maxval=0.01))
+        biases_logits = tf.get_variable("biases_logits", [input_dimension, count_categories], dtype=tf.float32, initializer=tf.random_normal_initializer(stddev=0.01))
+
+    masked_weights_logits = tf.multiply(weights_logits, tf.expand_dims(masks[-2], -1))
+    masked_skip_weights_logits = tf.multiply(skip_weights_logits, tf.expand_dims(masks[-1], -1))
+
+    #logits = tf.identity(tf.add(tf.add(tf.matmul(layer, tf.reshape(masked_weights_logits, (-1, input_dimension))), tf.reshape(biases_logits, (-1,))), tf.matmul(inputs, tf.reshape(masked_skip_weights_logits, (-1, input_dimension)))))
+    logits = tf.identity(tf.add(tf.add(tf.matmul(layer, tf.reshape(masked_weights_logits, (-1, count_categories * input_dimension))), tf.reshape(biases_logits, (-1,))), tf.matmul(inputs, tf.reshape(masked_skip_weights_logits, (-1, count_categories * input_dimension)))))
+    logits = tf.reshape(logits, (-1, input_dimension, count_categories))
+
+    return logits
+
+def made_masks(input_dimension, parents_dimension, hidden_dimensions, count_categories=1):
     masks = []
     maximum_inputs = []
 
     # Create maximum input arrays
     maximum_inputs.append(np.concatenate(
-        (np.zeros(parents_dimension), np.arange(1, input_dimension + 1))))
+        (np.zeros(parents_dimension), np.repeat(np.arange(1, input_dimension + 1), count_categories))))
     for d in hidden_dimensions:
         maximum_inputs.append(np.random.random_integers(low=np.amin(
             maximum_inputs[-1]), high=input_dimension - 1, size=d))
     maximum_inputs.append(np.arange(1, input_dimension + 1))
 
-    # TODO: Debug
+    # MADE for categorical distributions
+    #print(maximum_inputs[0])
+    #raise Exception()
 
     # Create masks between input layer and hidden layers
     for idx in range(len(hidden_dimensions)):
-        # TODO: Debug
         masks.append((maximum_inputs[idx + 1].reshape(
             (-1, 1)) >= maximum_inputs[idx]).astype(dtype=np.float32))
 

@@ -60,6 +60,16 @@ def bernoulli_mlp(settings, inputs, is_training, normalizer_fn=None):
 					activation_fn=params['activation_fn'],
 					normalizer_fn=normalizer_fn)
 
+def categorical_mlp(settings, inputs, is_training, normalizer_fn=None):
+	architecture = settings['architecture']
+	params = architecture['encoder']
+	inputs = tf_models.flatten(inputs)
+	return tf_models.layers.bernoulli_parameters_mlp(
+					inputs,
+					params['sizes'] + [settings['count_categories'] * settings['latent_dimension']],
+					activation_fn=params['activation_fn'],
+					normalizer_fn=normalizer_fn)
+
 def normal_dcgan(settings, inputs, is_training):
 	architecture = settings['architecture']
 	params = architecture['encoder']

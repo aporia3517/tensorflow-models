@@ -127,6 +127,11 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		# NOTE: Fixing the random seed is important, since we want the same masks when loading model from snapshot at a later time
 		np.random.seed(seed=4)
 		masks = tf_models.made.made_masks(settings['latent_dimension'], 784, settings['hidden_dims'])
+
+		# DEBUG
+		print('Parameters in unprincipled inference network: ', 784*200 + 200*200 + 200*30 + 200 + 200 + 30)
+		print('Parameters in principled inference network: ', np.sum([np.sum(m) for m in masks]) + np.sum(settings['hidden_dims']) + settings['latent_dimension'])
+		raise Exception()
 	else:
 		print('Reusing existing TensorFlow MADE masks...')
 

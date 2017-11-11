@@ -123,13 +123,15 @@ def create_probs(settings, inputs, is_training, reuse=False):
 	#with tf.variable_scope('centering', reuse=reuse):
 	#	z_sample_avg = tf.get_variable('z_sample_avg', shape=tf_models.latentshape(settings), initializer=tf.zeros_initializer(), dtype=tf.float32, trainable=False)
 
-	if tf_masks is None:
+	if masks is None:
 		print('Creating TensorFlow MADE masks for the first time...')
 		np.random.seed(seed=4)
 		masks = tf_models.made.made_masks(settings['latent_dimension'], 784, settings['hidden_dims'])
-		tf_masks = [tf.constant(m.transpose(), dtype=tf.float32) for m in masks]
 	else:
 		print('Reusing existing TensorFlow MADE masks...')
+
+	if not reuse:
+		tf_masks = [tf.constant(m.transpose(), dtype=tf.float32) for m in masks]
 
 	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
 	with tf.variable_scope('encoder', reuse=reuse):
