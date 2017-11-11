@@ -127,7 +127,7 @@ def make_made_categorical(inputs, parents, masks, input_dimension, parents_dimen
 
     # Create the neural network using the weight masks
     # First create the hidden layers
-    dimensions = [input_dimension + parents_dimension] + hidden_dimensions  # + [input_dimension]
+    dimensions = [input_dimension*count_categories + parents_dimension] + hidden_dimensions  # + [input_dimension]
     for idx in range(len(hidden_dimensions)):
         with tf.variable_scope('layer_{}'.format(idx)):
             weights = tf.get_variable("weights", [dimensions[idx], dimensions[idx + 1]], dtype=tf.float32, initializer=tf.random_uniform_initializer(minval=-0.01, maxval=0.01))

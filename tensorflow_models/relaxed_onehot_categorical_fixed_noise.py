@@ -130,6 +130,7 @@ class ExpRelaxedOneHotCategorical(distribution.Distribution):
       temperature,
       logits=None,
       probs=None,
+      gumbel_noise=None,
       dtype=dtypes.float32,
       validate_args=False,
       allow_nan_stats=True,
@@ -171,6 +172,7 @@ class ExpRelaxedOneHotCategorical(distribution.Distribution):
       self._logits, self._probs = distribution_util.get_logits_and_probs(
           name=name, logits=logits, probs=probs, validate_args=validate_args,
           multidimensional=True)
+      self._gumbel_noise = array_ops.identity(gumbel_noise, name="gumbel_noise")
 
       logits_shape_static = self._logits.get_shape().with_rank_at_least(1)
       if logits_shape_static.ndims is not None:
@@ -216,6 +218,11 @@ class ExpRelaxedOneHotCategorical(distribution.Distribution):
     """Vector of probabilities summing to one."""
     return self._probs
 
+  @property
+  def gumbel_noise(self):
+    """Distribution parameter for scale."""
+    return self._gumbel_noise
+
   def _batch_shape_tensor(self):
     return array_ops.shape(self._logits)[:-1]
 
@@ -239,7 +246,7 @@ class ExpRelaxedOneHotCategorical(distribution.Distribution):
     # numbers x, y have the reasonable property that, `x + y >= max(x, y)`. In
     # this case, a subnormal number (i.e., np.nextafter) can cause us to sample
     # 0.
-    uniform = random_ops.random_uniform(
+    """uniform = random_ops.random_uniform(
         shape=array_ops.shape(logits_2d),
         minval=np.finfo(self.dtype.as_numpy_dtype).tiny,
         maxval=1.,
@@ -247,10 +254,10 @@ class ExpRelaxedOneHotCategorical(distribution.Distribution):
         seed=seed)
 
     print(uniform.shape)
-    raise Exception()
+    raise Exception()"""
 
-    gumbel = -math_ops.log(-math_ops.log(uniform))
-    noisy_logits = math_ops.div(gumbel + logits_2d, self._temperature_2d)
+    #gumbel = -math_ops.log(-math_ops.log(uniform))
+    noisy_logits = math_ops.div(self.gumbel_noise + logits_2d, self._temperature_2d)
     samples = nn_ops.log_softmax(noisy_logits)
     ret = array_ops.reshape(samples, sample_shape)
     return ret

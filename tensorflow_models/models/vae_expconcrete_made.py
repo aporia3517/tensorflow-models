@@ -31,8 +31,7 @@ import math
 
 import tensorflow_models as tf_models
 import tensorflow_models.made
-import tensorflow_models.logistic_fixed_noise
-import tensorflow_models.categorical_fixed_noise
+import tensorflow_models.relaxed_onehot_categorical_fixed_noise as dist_fixed
 
 def create_placeholders(settings):
 	K = settings['count_categories']
@@ -60,18 +59,41 @@ def create_prior(settings):
 def create_encoder(settings, reuse=True):
 	temperature = 2./3.
 	encoder_network = settings['architecture']['encoder']['fn']
+	K = settings['count_categories']
 
 	x_placeholder = tf_models.samples_placeholder()
 	assert(not x_placeholder is None)
 
 	with tf.variable_scope('encoder', reuse=reuse):
-		logits_z = encoder_network(settings, x_placeholder, is_training=False)
-		dist_z_given_x = tf.contrib.distributions.ExpRelaxedOneHotCategorical(temperature=temperature, logits=logits_z)
-		logits_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32)
-		z_sample = tf.exp(logits_sample) * 2. - 1.
+		# Need to draw a sample from the encoder first, since the parameters of the MADE depend on the sample!
+		index = tf.constant(0)
+		condition = lambda i, s: tf.less(i, settings['latent_dimension'])
 
-		encoder = tf.identity(z_sample, name='q_z_given_x/sample')
-	return encoder
+		logits_sample = tf.zeros([settings['batch_size'], settings['latent_dimension'], settings['count_categories']])
+
+		uniform = tf.random_uniform(
+			shape=[settings['batch_size'] * settings['latent_dimension'], settings['count_categories']],
+			minval=np.finfo(np.float32).tiny,
+			maxval=1.,
+			dtype=tf.float32)	#,
+			#seed=seed)
+
+		gumbel_noise = -tf.log(-tf.log(uniform))
+
+		def update(index, logits_sample):
+			# Calculate the logits for the current 
+			logits_z = tf_models.made.make_made_categorical(tf.reshape(logits_sample, [settings['batch_size'], -1]), x_placeholder, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], count_categories=K, activation_fn=tf.tanh)
+			
+			made_dist = dist_fixed.ExpRelaxedOneHotCategorical(temperature=temperature, logits=logits_z, gumbel_noise=gumbel_noise)
+			logits_sample = made_dist.sample()
+
+			return tf.add(index, 1), logits_sample
+
+		# TODO: Do I need to stop the gradients through the while_loop?
+		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, parallel_iterations=1, shape_invariants=[index.get_shape(), logits_sample.shape]) # swap_memory=True
+
+		
+	return tf.identity(tf.exp(logits_sample) * 2.0 - 1., name='q_z_given_x/sample')
 
 def create_decoder(settings, reuse=True):
 	decoder_network = settings['architecture']['decoder']['fn']
@@ -118,20 +140,50 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		tf_masks = [tf.constant(m.transpose(), dtype=tf.float32) for m in masks]
 
 	# DEBUG
-	print([m.shape for m in masks])
-	raise Exception()
+	#print([m.shape for m in masks])
+	#raise Exception()
 	
 	# Use recognition network to determine mean and (log) variance of Gaussian distribution in latent space
 	with tf.variable_scope('encoder', reuse=reuse):
-		logits_z = tf.reshape(encoder_network(settings, inputs, is_training=is_training), latent_batchshape)
+		# Need to draw a sample from the encoder first, since the parameters of the MADE depend on the sample!
+		index = tf.constant(0)
+		condition = lambda i, s: tf.less(i, settings['latent_dimension'])
 
-	dist_z_given_x = tf.contrib.distributions.ExpRelaxedOneHotCategorical(temperature=temperature, logits=logits_z)
+		logits_sample = tf.zeros([settings['batch_size'], settings['latent_dimension'], settings['count_categories']])
 
-	# Draw one sample z from Gumbel-softmax
-	logits_sample = tf.cast(dist_z_given_x.sample(), dtype=tf.float32)
+		uniform = tf.random_uniform(
+			shape=[settings['batch_size'] * settings['latent_dimension'], settings['count_categories']],
+			minval=np.finfo(np.float32).tiny,
+			maxval=1.,
+			dtype=tf.float32)	#,
+			#seed=seed)
+
+		gumbel_noise = -tf.log(-tf.log(uniform))
+
+		# DEBUG
+		#print('logits_sample.shape', logits_sample.shape)
+
+		def update(index, logits_sample):
+			# Calculate the logits for the current 
+			logits_z = tf_models.made.make_made_categorical(tf.reshape(logits_sample, [settings['batch_size'], -1]), inputs, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], count_categories=K, activation_fn=tf.tanh)
+			
+			made_dist = dist_fixed.ExpRelaxedOneHotCategorical(temperature=temperature, logits=logits_z, gumbel_noise=gumbel_noise)
+			logits_sample = made_dist.sample()
+
+			return tf.add(index, 1), logits_sample
+
+		# TODO: Do I need to stop the gradients through the while_loop?
+		_, logits_sample = tf.while_loop(condition, update, loop_vars=[index, logits_sample], back_prop=True, parallel_iterations=1, shape_invariants=[index.get_shape(), logits_sample.shape]) # swap_memory=True
+
+		# Use the sample from the MADE to evaluate the final logitistic parameters
+		tf.get_variable_scope().reuse_variables()
+		logits_z = tf_models.made.make_made_categorical(tf.reshape(logits_sample, [settings['batch_size'], -1]), inputs, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], count_categories=K, activation_fn=tf.tanh)
+
+	dist_z_given_x = dist_fixed.ExpRelaxedOneHotCategorical(temperature=temperature, logits=logits_z, gumbel_noise=gumbel_noise)
 
 	# DEBUG
 	#print('logits_sample.shape', logits_sample.shape)
+	#print('logits_z.shape', logits_z.shape)
 	#raise Exception()
 
 	# NOTE: Is this what is meant by "this running average was subtracted from the activity of the layer before it was updated"?

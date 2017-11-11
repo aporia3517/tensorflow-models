@@ -166,11 +166,6 @@ def create_probs(settings, inputs, is_training, reuse=False):
 		tf.get_variable_scope().reuse_variables()
 		logits_z = tf_models.made.make_made_logistic_single(logits_sample, inputs, tf_masks, settings['latent_dimension'], 784, settings['hidden_dims'], activation_fn=tf.tanh)
 
-	# Create the final encoder distribution
-	"""components = []
-	for k in range(count_mixture_components):
-		components.append(dist.Logistic(loc=logits_z[:, :, k]/temperature, scale=tf.constant(1./temperature, shape=logits_z[:, :, k].shape)))"""
-
 	#dist_z_given_x = dist.Mixture(cat=dist.Categorical(probs=tf.clip_by_value(coefs_z, 1e-6, 1 - 1e-6)), components=components)
 	dist_z_given_x = tf_models.logistic_fixed_noise.Logistic(loc=logits_z/temperature, scale=tf.constant(1./temperature, shape=logits_z.shape), gumbel_noise=gumbel_noise)
 
