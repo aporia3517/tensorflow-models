@@ -122,7 +122,8 @@ def make_made_logistic_single(inputs, parents, masks, input_dimension, parents_d
 
 # Turns out this is the same as make_made for mixture model!
 def make_made_categorical(inputs, parents, masks, input_dimension, parents_dimension, hidden_dimensions, count_categories=2, activation_fn=tf.nn.relu):
-    inputs = tf.concat([parents, inputs], 1)
+    if parents is not None:
+        inputs = tf.concat([parents, inputs], 1)
     layer = inputs
 
     # Create the neural network using the weight masks
