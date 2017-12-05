@@ -185,7 +185,13 @@
     <Compile Include="models\vae_expconcrete_made.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="models\vae_expconcrete_made_iw.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="models\vae_expconcrete_made_made.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="models\vae_expconcrete_made_prior.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="models\vae_iw.py">
