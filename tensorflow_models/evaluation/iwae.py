@@ -54,7 +54,7 @@ class Evaluator(BaseEvaluator):
 			# TODO: Average over all of test/train set
 			this_iwae = self.sess.run(test_iwae_op, feed_dict={x_test: self._tensors})
 	
-		print('epoch {:.3f}, test loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), test_loss, test_iwae, this_iwae, iwae_timer.interval))
+		print('epoch {:.3f}, test loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), test_elbo, test_iwae, this_iwae, iwae_timer.interval))
 		self.ais_results['iwae'].append(this_iwae)
 		self.ais_results['iwae_epoch'].append(self.epoch())
 
