@@ -47,14 +47,14 @@ class Evaluator(BaseEvaluator):
 	def running(self):
 		return self.step < self._end_step()
 
-	def run(self):
+	def run(self, train):
 		if self.step + self._settings['iwae_increment'] < self._end_step():
 			self.step += self._settings['iwae_increment']
 		else:
 			self.step = self._end_step()
 		
 		self._load_snapshot()
-		self.step_hook()
+		self.step_hook(train)
 
 	def _load_snapshot(self):
 		# Check that checkpoint file exists
@@ -73,19 +73,33 @@ class Evaluator(BaseEvaluator):
 		self.iwae_results['iwae'] = []
 		self.iwae_results['iwae_epoch'] = []
 
-	def step_hook(self):
+	def step_hook(self, train):
 		# See where the test loss starts
-		test_elbo = self.results['costs_test'][-1]
-		test_iwae = self.results['iwaes_test'][-1]
-		test_iwae_op = tf_models.get_loss('test/iwae')
-		x_test = tf_models.test_placeholder()
+		if train:
+			elbo = self.results['costs_train'][-1]
+			iwae = self.results['iwaes_train'][-1]
+			test_iwae_op = tf_models.get_loss('test/iwae')
+			x_batch = self._tensors[1]
+		else:
+			elbo = self.results['costs_test'][-1]
+			iwae = self.results['iwaes_test'][-1]
+			test_iwae_op = tf_models.get_loss('test/iwae')
+			x_batch = self._tensors[0]
+		
+		x_placeholder = tf_models.test_placeholder()
 
 		# TODO: Operations
 		with tf_models.timer.Timer() as iwae_timer:
 			# TODO: Average over all of test/train set
-			this_iwae = self.sess.run(test_iwae_op, feed_dict={x_test: self._tensors})
+			this_iwae = 0
+			for idx in range(self._settings['iwae_samples']):
+				this_iwae = self.sess.run(test_iwae_op, feed_dict={x_placeholder: x_batch()})
 	
-		print('epoch {:.3f}, test loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), test_elbo, test_iwae, this_iwae, iwae_timer.interval))
+		if train:
+			print('epoch {:.3f}, train loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), elbo, iwae, this_iwae, iwae_timer.interval))
+		else:
+			print('epoch {:.3f}, test loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), elbo, iwae, this_iwae, iwae_timer.interval))
+
 		self.iwae_results['iwae'].append(this_iwae)
 		self.iwae_results['iwae_epoch'].append(self.epoch())
 
