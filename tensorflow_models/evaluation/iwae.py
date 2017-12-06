@@ -34,6 +34,27 @@ import tensorflow_models as tf_models
 from tensorflow_models.evaluation import BaseEvaluator
 
 class Evaluator(BaseEvaluator):
+	# Initialize results, loading results/parameters from snapshot if requested
+	def _resume(self):
+		# Check that checkpoint file exists
+		self.step = self._settings['iwae_start'] - self._settings['iwae_increment']
+		#self._load_snapshot()
+
+	def _end_step(self):
+		return min(self._settings['iwae_end'], self._settings['count_epochs'])
+
+	def running(self):
+		return self.step < self._end_step()
+
+	def run(self):
+		if self.step + self._settings['iwae_increment'] < self._end_step():
+			self.step += self._settings['iwae_increment']
+		else:
+			self.step = self._end_step()
+		
+		self._load_snapshot()
+		self.step_hook()
+
 	def finalize_hook(self):
 		print('Done training for {} epochs'.format(self.epoch()))
 
