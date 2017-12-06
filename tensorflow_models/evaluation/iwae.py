@@ -93,7 +93,8 @@ class Evaluator(BaseEvaluator):
 			# TODO: Average over all of test/train set
 			this_iwae = 0
 			for idx in range(self._settings['iwae_samples']):
-				this_iwae = self.sess.run(test_iwae_op, feed_dict={x_placeholder: x_batch()})
+				this_iwae += self.sess.run(test_iwae_op, feed_dict={x_placeholder: x_batch()})
+			this_iwae /= self._settings['iwae_samples']
 	
 		if train:
 			print('epoch {:.3f}, train loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), elbo, iwae, this_iwae, iwae_timer.interval))
