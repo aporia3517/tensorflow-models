@@ -44,8 +44,8 @@ class Evaluator(BaseEvaluator):
 
 	def step_hook(self):
 		# See where the test loss starts
-		test_elbo = self.results['elbo_test'][-1]
-		test_iwae = self.results['iwae_test'][-1]
+		test_elbo = self.results['costs_test'][-1]
+		test_iwae = self.results['iwaes_test'][-1]
 		test_iwae_op = tf_models.get_loss('test/iwae')
 		x_test = tf_models.test_placeholder()
 
