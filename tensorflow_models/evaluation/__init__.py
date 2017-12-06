@@ -42,8 +42,8 @@ class BaseEvaluator(object):
 		self._ops = ops
 		self._tensors = tensors
 
-		if not self._decoder is None:
-			assert(settings['batch_size'] >= settings['sample_size'])
+		#if not self._decoder is None:
+		#	assert(settings['batch_size'] >= settings['sample_size'])
 		
 	def __enter__(self):
 		self._resume()
