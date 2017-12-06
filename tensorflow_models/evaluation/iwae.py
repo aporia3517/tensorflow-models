@@ -55,6 +55,15 @@ class Evaluator(BaseEvaluator):
 		self._load_snapshot()
 		self.step_hook()
 
+	def _load_snapshot(self):
+		# Check that checkpoint file exists
+		snapshot_filepath = tf_models.settings.snapshots_filepath(self._settings, self._paths) + '-' + str(self.step)
+		if not tf_data.utils.file.exists(snapshot_filepath + '.meta'):
+			raise IOError('Snapshot at step {} does not exist'.format(self.step))
+		self._saver.restore(self.sess, snapshot_filepath)
+		self.results = tf_models.snapshot.load_results(snapshot_filepath)
+		#print("Model restored from epoch {}".format(self.epoch()))
+
 	def finalize_hook(self):
 		print('Done training for {} epochs'.format(self.epoch()))
 
