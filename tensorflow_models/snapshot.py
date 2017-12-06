@@ -49,6 +49,12 @@ def save_new_ais(filepath, settings, test_ais, test_ais_epochs, train_ais, train
 	with open(results_filepath, 'wb') as f:
 		pickle.dump((test_ais, test_ais_epochs, train_ais, train_ais_epochs), f, protocol = pickle.HIGHEST_PROTOCOL)
 
+# Save results so we can plot them later and resume from snapshots
+def save_new_iwae(filepath, settings, test_iwae, test_iwae_epochs, train_iwae, train_iwae_epochs):
+	results_filepath = filepath + '-' + str(settings['iwae_start']) + '-' + str(settings['iwae_end']) + '.results'
+	with open(results_filepath, 'wb') as f:
+		pickle.dump((test_iwae, test_iwae_epochs, train_iwae, train_iwae_epochs), f, protocol = pickle.HIGHEST_PROTOCOL)
+
 def load_ais(filepath):
 	results_filepath = filepath + '.results'
 	#print(results_filepath)
@@ -69,6 +75,15 @@ def load_new_ais(filepath):
 	with open(results_filepath, 'rb') as f:
 		test_ais, test_ais_epochs, train_ais, train_ais_epochs = pickle.load(f)
 		return test_ais, test_ais_epochs, train_ais, train_ais_epochs
+
+def load_new_iwae(filepath):
+	results_filepath = filepath + '.results'
+	if not tf_data.utils.file.exists(results_filepath):
+		raise IOError('Results file at epoch {} does not exist'.format(epoch))
+
+	with open(results_filepath, 'rb') as f:
+		test_iwae, test_iwae_epochs, train_iwae, train_iwae_epochs = pickle.load(f)
+		return test_iwae, test_iwae_epochs, train_iwae, train_iwae_epochs
 
 def load_results(filepath):
 	results_filepath = filepath + '.results'

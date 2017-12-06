@@ -29,7 +29,7 @@ import tensorflow_datasets as tf_data
 import tensorflow_models as tf_models
 
 class BaseEvaluator(object):
-	def __init__(self, settings, paths, context, ops):
+	def __init__(self, settings, paths, context, ops=None, tensors=None):
 		self._settings = settings
 		self._context = context
 		self.sess = self._context.sess
@@ -40,6 +40,7 @@ class BaseEvaluator(object):
 		self._decoder = tf_models.get_decoder()
 		self._z_placeholder = tf_models.codes_placeholder()
 		self._ops = ops
+		self._tensors = tensors
 
 		if not self._decoder is None:
 			assert(settings['batch_size'] >= settings['sample_size'])
