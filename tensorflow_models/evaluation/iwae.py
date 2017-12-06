@@ -31,6 +31,7 @@ import numpy as np
 from six.moves import range
 
 import tensorflow_models as tf_models
+import tensorflow_datasets as tf_data
 from tensorflow_models.evaluation import BaseEvaluator
 
 class Evaluator(BaseEvaluator):
