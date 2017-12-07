@@ -80,7 +80,7 @@ class Evaluator(BaseEvaluator):
 			if 'iwae_train' in self.results:
 				iwae = self.results['iwaes_train'][-1]
 			else:
-				iwae = '_'
+				iwae = None
 			test_iwae_op = tf_models.get_loss('test/iwae')
 			x_batch = self._tensors[1]
 		else:
@@ -88,7 +88,7 @@ class Evaluator(BaseEvaluator):
 			if 'iwae_test' in self.results:
 				iwae = self.results['iwaes_test'][-1]
 			else:
-				iwae = '_'
+				iwae = None
 			test_iwae_op = tf_models.get_loss('test/iwae')
 			x_batch = self._tensors[0]
 		
@@ -103,9 +103,15 @@ class Evaluator(BaseEvaluator):
 			this_iwae /= self._settings['iwae_samples']
 	
 		if train:
-			print('epoch {:.3f}, train loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), elbo, iwae, this_iwae, iwae_timer.interval))
+			if iwae is not None:
+				print('epoch {:.3f}, train loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), elbo, iwae, this_iwae, iwae_timer.interval))
+			else:
+				print('epoch {:.3f}, train loss = {:.2f}/_/{:.2f}, {:.1f} sec'.format(self.epoch(), elbo, this_iwae, iwae_timer.interval))
 		else:
-			print('epoch {:.3f}, test loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), elbo, iwae, this_iwae, iwae_timer.interval))
+			if iwae is not None:
+				print('epoch {:.3f}, test loss = {:.2f}/{:.2f}/{:.2f}, {:.1f} sec'.format(self.epoch(), elbo, iwae, this_iwae, iwae_timer.interval))
+			else:
+				print('epoch {:.3f}, test loss = {:.2f}/_/{:.2f}, {:.1f} sec'.format(self.epoch(), elbo, this_iwae, iwae_timer.interval))
 
 		self.iwae_results['iwae'].append(this_iwae)
 		self.iwae_results['iwae_epoch'].append(self.epoch())
