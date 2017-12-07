@@ -77,12 +77,18 @@ class Evaluator(BaseEvaluator):
 		# See where the test loss starts
 		if train:
 			elbo = self.results['costs_train'][-1]
-			iwae = self.results['iwaes_train'][-1]
+			if 'iwae_train' in self.results:
+				iwae = self.results['iwaes_train'][-1]
+			else:
+				iwae = '_'
 			test_iwae_op = tf_models.get_loss('test/iwae')
 			x_batch = self._tensors[1]
 		else:
 			elbo = self.results['costs_test'][-1]
-			iwae = self.results['iwaes_test'][-1]
+			if 'iwae_test' in self.results:
+				iwae = self.results['iwaes_test'][-1]
+			else:
+				iwae = '_'
 			test_iwae_op = tf_models.get_loss('test/iwae')
 			x_batch = self._tensors[0]
 		
