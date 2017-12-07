@@ -78,8 +78,7 @@ def create_prior(settings):
 			shape=[settings['batch_size'] * settings['latent_dimension'], settings['count_categories']],
 			minval=np.finfo(np.float32).tiny,
 			maxval=1.,
-			dtype=tf.float32)	#,
-			#seed=seed)
+			dtype=tf.float32)
 
 		gumbel_noise = -tf.log(-tf.log(uniform))
 
